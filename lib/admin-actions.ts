@@ -80,9 +80,10 @@ export async function updateLicense(body: any, db: Redis) {
   if (body.active    !== undefined) updated.active    = Boolean(body.active);
   if (body.allowedDomains !== undefined) {
     const raw = Array.isArray(body.allowedDomains) ? body.allowedDomains : [body.allowedDomains];
-    updated.allowedDomains = raw.map((d: string) => String(d).toLowerCase().trim()).filter(Boolean);
+    const domains = raw.map((d: string) => String(d).toLowerCase().trim()).filter(Boolean);
+    updated.allowedDomains = domains;
     delete updated.allowedDomain;
-    for (const d of updated.allowedDomains) await db.sadd(`org_domain:${d}`, key);
+    for (const d of domains) await db.sadd(`org_domain:${d}`, key);
   }
   if (body.allowedEmail !== undefined) updated.allowedEmail = String(body.allowedEmail).toLowerCase().trim();
 
@@ -142,7 +143,7 @@ export async function listLicenses(db: Redis) {
              label: r.label || "", allowedEmail: r.allowedEmail || "",
              allowedDomains: r.allowedDomains || [], maxUsers: r.maxUsers ?? 0,
              resellerId: r.resellerId || "", expiresAt: r.expiresAt, createdAt: r.createdAt };
-  }))).filter(Boolean).sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime());
+  }))).filter((l): l is NonNullable<typeof l> => l !== null).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return { count: licenses.length, licenses };
 }
 
@@ -198,7 +199,7 @@ export async function billingReport(db: Redis) {
     const active  = lics.filter(r => r && r.active !== false && (!r.expiresAt || new Date(r.expiresAt) > new Date())).length;
     const expired = lics.filter(r => r && r.active !== false && r.expiresAt && new Date(r.expiresAt) <= new Date()).length;
     return { resellerKey: rKey, name: reseller.name, email: reseller.email, discountPct: reseller.discountPct, active: reseller.active, totalLicenses: licKeys.length, activeLicenses: active, expiredLicenses: expired };
-  }))).filter(Boolean).sort((a, b) => b!.activeLicenses - a!.activeLicenses);
+  }))).filter((r): r is NonNullable<typeof r> => r !== null).sort((a, b) => b.activeLicenses - a.activeLicenses);
 
   const directKeys = allLicenseKeys.filter(k => !resellerOwned.has(k));
   const directLics = await Promise.all(directKeys.map(k => db.get<LicenseRecord>(`license:${k}`)));
@@ -267,6 +268,6 @@ export async function listResellers(db: Redis) {
     const r = await db.get<ResellerRecord>(`reseller:${key}`);
     if (!r) return null;
     return { resellerKey: key, ...r };
-  }))).filter(Boolean).sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime());
+  }))).filter((r): r is NonNullable<typeof r> => r !== null).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return { count: resellers.length, resellers };
 }

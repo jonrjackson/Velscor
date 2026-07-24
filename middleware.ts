@@ -1,14 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
+const isPublicPortalRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+
+export default clerkMiddleware(async (auth, req) => {
   const host = req.headers.get("host") || "";
+  const isPortalHost = host.startsWith("app.");
+
+  if (isPortalHost && !isPublicPortalRoute(req)) {
+    await auth.protect();
+  }
+
   const url = req.nextUrl.clone();
-
-  const prefix = host.startsWith("app.") ? "/portal" : "/marketing";
-  url.pathname = `${prefix}${url.pathname}`;
-
+  url.pathname = `${isPortalHost ? "/portal" : "/marketing"}${url.pathname}`;
   return NextResponse.rewrite(url);
-}
+});
 
 export const config = {
   matcher: [

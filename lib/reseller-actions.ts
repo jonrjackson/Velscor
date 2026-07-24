@@ -71,7 +71,7 @@ export async function listLicenses(resellerKey: string, resellerName: string, db
       daysRemaining: r.expiresAt ? daysRemaining(r.expiresAt) : null,
       status: r.active === false ? "deactivated" : expired ? "expired" : "active",
     };
-  }))).filter(Boolean).sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime());
+  }))).filter((l): l is NonNullable<typeof l> => l !== null).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return { reseller: resellerName, count: licenses.length, licenses };
 }
@@ -100,9 +100,10 @@ export async function updateLicense(body: any, resellerKey: string, db: Redis) {
   if (body.contactEmail !== undefined) updated.contactEmail = String(body.contactEmail);
   if (body.allowedDomains !== undefined) {
     const raw = Array.isArray(body.allowedDomains) ? body.allowedDomains : [body.allowedDomains];
-    updated.allowedDomains = raw.map((d: string) => String(d).toLowerCase().trim()).filter(Boolean);
+    const domains = raw.map((d: string) => String(d).toLowerCase().trim()).filter(Boolean);
+    updated.allowedDomains = domains;
     delete updated.allowedDomain;
-    for (const d of updated.allowedDomains) await db.sadd(`org_domain:${d}`, key);
+    for (const d of domains) await db.sadd(`org_domain:${d}`, key);
   }
   if (body.allowedEmail !== undefined) updated.allowedEmail = String(body.allowedEmail).toLowerCase().trim();
 

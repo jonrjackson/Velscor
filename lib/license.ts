@@ -26,6 +26,7 @@ export interface LicenseRecord {
   contactEmail?: string;
   discountPct?: number;
   discountNote?: string;
+  resellerId?: string;
 }
 
 export interface LicenseValidation {

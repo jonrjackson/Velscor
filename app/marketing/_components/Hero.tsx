@@ -5,8 +5,9 @@ export default function Hero() {
         AI-powered email threat detection, right inside Outlook
       </h1>
       <p style={{ fontSize: 19, color: "var(--fg-muted)", maxWidth: 640, margin: "0 auto 32px" }}>
-        Velscor scans every message in real time and flags phishing, spoofing, and QR-code
-        scams before they reach your team &mdash; no separate inbox, no extra steps.
+        Velscor adds an AI-powered verdict right in the Outlook reading pane &mdash; as your
+        team opens a message, they instantly see if it&rsquo;s safe, suspicious, or a likely
+        phishing, spoofing, or QR-code scam.
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
         <a href="#pricing" className="btn btn-primary">

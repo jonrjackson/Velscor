@@ -9,7 +9,7 @@ const FEATURES = [
   },
   {
     title: "QR-code phishing detection",
-    body: "Scans embedded QR codes for malicious destinations &mdash; a growing attack vector that most filters miss entirely.",
+    body: "Flags emails using QR codes as a phishing tactic &mdash; a growing attack vector that most filters miss entirely.",
   },
   {
     title: "Per-org and per-user licensing",

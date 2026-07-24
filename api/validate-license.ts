@@ -5,6 +5,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
   const { key } = req.body || {};
-  const result = await validateLicense(String(key || ""));
-  return res.status(200).json(result);
+  try {
+    const result = await validateLicense(String(key || ""));
+    return res.status(200).json(result);
+  } catch (err: any) {
+    console.error("License validation error:", err.message);
+    return res.status(200).json({ valid: false, reason: "License server error — check Upstash configuration" });
+  }
 }

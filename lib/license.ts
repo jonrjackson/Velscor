@@ -29,8 +29,9 @@ function getRedis(): Redis {
 export async function validateLicense(key: string): Promise<LicenseValidation> {
   if (!key) return { valid: false, reason: "No license key provided" };
 
-  // Admin key is always valid — no database needed
-  if (key === process.env.ADMIN_LICENSE_KEY) {
+  // Admin key is always valid — no database needed (case-insensitive, trimmed)
+  const adminKey = (process.env.ADMIN_LICENSE_KEY || "").trim();
+  if (adminKey && key.trim().toUpperCase() === adminKey.toUpperCase()) {
     return { valid: true, type: "permanent", expiresAt: null };
   }
 

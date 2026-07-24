@@ -111,6 +111,12 @@ function parseEml(rawEml: string) {
 }
 
 function App() {
+  // Current user's Outlook email (used for license scope enforcement)
+  const userEmail = React.useMemo(() => {
+    try { return (Office as any).context.mailbox.userProfile.emailAddress || ""; }
+    catch { return ""; }
+  }, []);
+
   // License state
   const [licenseStatus, setLicenseStatus] = React.useState<LicenseStatus>("checking");
   const [licenseKey, setLicenseKey]       = React.useState<string | null>(null);
@@ -182,7 +188,7 @@ function App() {
     const response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, licenseKey }),
+      body: JSON.stringify({ ...data, licenseKey, userEmail }),
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));

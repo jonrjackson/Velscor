@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Redis } from "@upstash/redis";
-import { generateKey, LicenseRecord } from "../lib/license";
+import { generateKey, LicenseRecord, TIERS } from "../lib/license";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
@@ -11,10 +11,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { type = "trial", trialDays = 30, email = "", label = "" } = req.body || {};
+  const body = req.body || {};
+  const type          = String(body.type         || "trial") as "trial" | "paid";
+  const scope         = String(body.scope        || "user") as "user" | "org";
+  const trialDays     = Number(body.trialDays    ?? 30);
+  const tier          = String(body.tier         || "");
+  const allowedEmail  = String(body.allowedEmail  || "");
+  const allowedDomain = String(body.allowedDomain || "");
+  const maxUsers      = body.maxUsers != null ? Number(body.maxUsers) : (TIERS[tier]?.maxUsers ?? 0);
+  const label         = String(body.label        || "");
+  const contactEmail  = String(body.contactEmail || "");
+  const discountPct   = Number(body.discountPct  || 0);
+  const discountNote  = String(body.discountNote || "");
 
   if (!["trial", "paid"].includes(type)) {
     return res.status(400).json({ error: "type must be 'trial' or 'paid'" });
+  }
+  if (!["user", "org"].includes(scope)) {
+    return res.status(400).json({ error: "scope must be 'user' or 'org'" });
+  }
+  if (scope === "user" && !allowedEmail) {
+    return res.status(400).json({ error: "allowedEmail is required for user scope" });
+  }
+  if (scope === "org" && !allowedDomain) {
+    return res.status(400).json({ error: "allowedDomain is required for org scope" });
   }
 
   const redis = new Redis({
@@ -24,15 +44,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const key = generateKey();
   const now = new Date();
+
   const record: LicenseRecord = {
     type,
+    scope,
     createdAt: now.toISOString(),
     expiresAt: type === "trial"
       ? new Date(now.getTime() + Number(trialDays) * 86_400_000).toISOString()
       : null,
-    email: email || undefined,
-    label: label || undefined,
   };
+
+  if (scope === "user")  { record.allowedEmail  = allowedEmail.toLowerCase().trim(); }
+  if (scope === "org")   { record.allowedDomain = allowedDomain.toLowerCase().trim(); record.maxUsers = Number(maxUsers); }
+  if (tier)              { record.tier          = tier; }
+  if (label)             { record.label         = label; }
+  if (contactEmail)      { record.contactEmail  = contactEmail; }
+  if (discountPct)       { record.discountPct   = Number(discountPct); }
+  if (discountNote)      { record.discountNote  = discountNote; }
 
   await redis.set(`license:${key}`, record);
 

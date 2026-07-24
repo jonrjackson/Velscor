@@ -9,9 +9,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { subject, body, sender, senderEmail, replyTo, returnPath, authResults, licenseKey } = req.body || {};
+  const { subject, body, sender, senderEmail, replyTo, returnPath, authResults, licenseKey, userEmail } = req.body || {};
 
-  const license = await validateLicense(String(licenseKey || ""));
+  const license = await validateLicense(String(licenseKey || ""), userEmail ? String(userEmail) : undefined);
   if (!license.valid) {
     return res.status(403).json({ error: license.reason || "Invalid license" });
   }

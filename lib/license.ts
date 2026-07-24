@@ -1,17 +1,37 @@
 import { Redis } from "@upstash/redis";
 
+// ── Tier definitions ─────────────────────────────────────────────────────────
+// Edit maxUsers here to change tier limits without touching any other code.
+// maxUsers: 0 = unlimited
+export const TIERS: Record<string, { maxUsers: number; label: string }> = {
+  user:       { maxUsers: 1,   label: "Individual" },
+  small:      { maxUsers: 50,  label: "Small (up to 50 users)" },
+  business:   { maxUsers: 250, label: "Business (up to 250 users)" },
+  enterprise: { maxUsers: 0,   label: "Enterprise (unlimited)" },
+};
+
 export interface LicenseRecord {
   type: "permanent" | "trial" | "paid";
+  scope: "user" | "org";
   createdAt: string;
   expiresAt: string | null;
-  email?: string;
+  // Scope enforcement
+  allowedEmail?: string;    // user scope — specific address
+  allowedDomain?: string;   // org scope — everyone at this domain
+  maxUsers?: number;        // org scope — 0 = unlimited
+  // Metadata (billing reference only, not enforced)
+  tier?: string;
   label?: string;
+  contactEmail?: string;
+  discountPct?: number;
+  discountNote?: string;
 }
 
 export interface LicenseValidation {
   valid: boolean;
   reason?: string;
   type?: string;
+  scope?: string;
   expiresAt?: string | null;
 }
 
@@ -26,27 +46,59 @@ function getRedis(): Redis {
   return _redis;
 }
 
-export async function validateLicense(key: string): Promise<LicenseValidation> {
+export async function validateLicense(key: string, userEmail?: string): Promise<LicenseValidation> {
   if (!key) return { valid: false, reason: "No license key provided" };
 
-  // Admin key is always valid — no database needed (case-insensitive, trimmed)
+  // Admin key — permanent, bypasses all scope checks
   const adminKey = (process.env.ADMIN_LICENSE_KEY || "").trim();
   if (adminKey && key.trim().toUpperCase() === adminKey.toUpperCase()) {
-    return { valid: true, type: "permanent", expiresAt: null };
+    return { valid: true, type: "permanent", scope: "admin", expiresAt: null };
   }
 
-  const record = await getRedis().get<LicenseRecord>(`license:${key}`);
+  const redis = getRedis();
+  const record = await redis.get<LicenseRecord>(`license:${key}`);
   if (!record) return { valid: false, reason: "Invalid license key" };
 
   if (record.expiresAt && new Date(record.expiresAt) < new Date()) {
-    return { valid: false, reason: "Trial license has expired" };
+    return { valid: false, reason: "License has expired" };
   }
 
-  return { valid: true, type: record.type, expiresAt: record.expiresAt };
+  // Scope enforcement (only when userEmail is provided)
+  if (userEmail) {
+    const email = userEmail.toLowerCase().trim();
+
+    if (record.scope === "user") {
+      if (email !== (record.allowedEmail || "").toLowerCase().trim()) {
+        return { valid: false, reason: "This license key is registered to a different user" };
+      }
+    }
+
+    if (record.scope === "org") {
+      const userDomain = email.split("@")[1] || "";
+      if (userDomain !== (record.allowedDomain || "").toLowerCase().trim()) {
+        return { valid: false, reason: "This license key is registered to a different organization" };
+      }
+
+      // Enforce user seat limit (maxUsers > 0 means limited)
+      const maxUsers = record.maxUsers ?? 0;
+      if (maxUsers > 0) {
+        const usersKey = `license_users:${key}`;
+        const alreadySeen = await redis.sismember(usersKey, email);
+        if (!alreadySeen) {
+          const currentCount = await redis.scard(usersKey);
+          if (currentCount >= maxUsers) {
+            return { valid: false, reason: `User seat limit (${maxUsers}) reached for this license` };
+          }
+          await redis.sadd(usersKey, email);
+        }
+      }
+    }
+  }
+
+  return { valid: true, type: record.type, scope: record.scope, expiresAt: record.expiresAt };
 }
 
 export function generateKey(): string {
-  // Avoids ambiguous characters (0/O, 1/I)
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const seg = () =>
     Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");

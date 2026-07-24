@@ -7,9 +7,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const providedSecret = String(req.headers["x-admin-secret"] || "").trim();
   const expectedSecret = (process.env.ADMIN_SECRET || "").trim();
-  console.log(`[auth] provided length=${providedSecret.length} expected length=${expectedSecret.length} match=${providedSecret === expectedSecret}`);
   if (!expectedSecret || providedSecret !== expectedSecret) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({
+      error: "Unauthorized",
+      debug: { providedLength: providedSecret.length, expectedLength: expectedSecret.length }
+    });
   }
 
   const { type = "trial", trialDays = 30, email = "", label = "" } = req.body || {};

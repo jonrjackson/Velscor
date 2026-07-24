@@ -30,10 +30,18 @@ export default function Pricing() {
                 {tier.maxUsers === 0 ? "Unlimited seats" : `Up to ${tier.maxUsers} seat${tier.maxUsers === 1 ? "" : "s"}`}
               </p>
             </div>
-            <p style={{ fontSize: 22, fontWeight: 700, margin: "auto 0 0" }}>Contact us for pricing</p>
-            {/* TODO(v2): once pricing is finalized, add priceMonthly/priceNote to TIERS in lib/license.ts and render it here */}
+            <p style={{ fontSize: 28, fontWeight: 700, margin: "auto 0 0" }}>
+              {tier.priceMonthly != null ? (
+                <>
+                  ${tier.priceMonthly}
+                  <span style={{ fontSize: 15, fontWeight: 400, color: "var(--fg-muted)" }}>/mo</span>
+                </>
+              ) : (
+                tier.priceNote || "Contact us"
+              )}
+            </p>
             <a href="mailto:jon@jonandtrace.com" className="btn btn-secondary" style={{ justifyContent: "center" }}>
-              Contact sales
+              {tier.priceMonthly != null ? "Get started" : "Contact sales"}
             </a>
           </div>
         ))}

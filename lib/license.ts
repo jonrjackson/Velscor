@@ -3,11 +3,12 @@ import { Redis } from "@upstash/redis";
 // ── Tier definitions ─────────────────────────────────────────────────────────
 // Edit maxUsers here to change tier limits without touching any other code.
 // maxUsers: 0 = unlimited
-export const TIERS: Record<string, { maxUsers: number; label: string }> = {
-  user:       { maxUsers: 1,   label: "Individual" },
-  small:      { maxUsers: 50,  label: "Small (up to 50 users)" },
-  business:   { maxUsers: 250, label: "Business (up to 250 users)" },
-  enterprise: { maxUsers: 0,   label: "Enterprise (unlimited)" },
+// priceMonthly/priceNote are display-only (marketing pricing page) — not enforced here.
+export const TIERS: Record<string, { maxUsers: number; label: string; priceMonthly?: number; priceNote?: string }> = {
+  user:       { maxUsers: 1,   label: "Individual",                priceMonthly: 4.99 },
+  small:      { maxUsers: 50,  label: "Small (up to 50 users)",     priceMonthly: 79 },
+  business:   { maxUsers: 250, label: "Business (up to 250 users)", priceMonthly: 299 },
+  enterprise: { maxUsers: 0,   label: "Enterprise (unlimited)",     priceNote: "Contact us" },
 };
 
 export interface LicenseRecord {

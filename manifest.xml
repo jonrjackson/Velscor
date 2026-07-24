@@ -6,7 +6,7 @@
            xsi:type="MailApp">
 
   <Id>C41FD75D-E813-407E-BDF4-2E6405446166</Id>
-  <Version>1.0.0.5</Version>
+  <Version>1.0.0.6</Version>
   <ProviderName>MailGuard</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="MailGuard"/>
@@ -82,6 +82,31 @@
             </ExtensionPoint>
           </DesktopFormFactor>
 
+          <MobileFormFactor>
+            <ExtensionPoint xsi:type="MobileMessageReadCommandSurface">
+              <Group id="mobileGroup1">
+                <Label resid="groupLabel"/>
+                <Control xsi:type="MobileButton" id="mobileTaskPaneButton">
+                  <Label resid="taskPaneButtonLabel"/>
+                  <Icon xsi:type="bt:MobileIconList">
+                    <bt:Image size="25" scale="1" resid="icon_25_1"/>
+                    <bt:Image size="25" scale="2" resid="icon_25_2"/>
+                    <bt:Image size="25" scale="3" resid="icon_25_3"/>
+                    <bt:Image size="32" scale="1" resid="icon_32_1"/>
+                    <bt:Image size="32" scale="2" resid="icon_32_2"/>
+                    <bt:Image size="32" scale="3" resid="icon_32_3"/>
+                    <bt:Image size="48" scale="1" resid="icon_48_1"/>
+                    <bt:Image size="48" scale="2" resid="icon_48_2"/>
+                    <bt:Image size="48" scale="3" resid="icon_48_3"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="messageReadTaskPaneUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+            </ExtensionPoint>
+          </MobileFormFactor>
+
         </Host>
       </Hosts>
       <Resources>
@@ -89,6 +114,15 @@
           <bt:Image id="icon16" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
           <bt:Image id="icon32" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
           <bt:Image id="icon80" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-128.png"/>
+          <bt:Image id="icon_25_1" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
+          <bt:Image id="icon_25_2" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
+          <bt:Image id="icon_25_3" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-128.png"/>
+          <bt:Image id="icon_32_1" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
+          <bt:Image id="icon_32_2" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
+          <bt:Image id="icon_32_3" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-128.png"/>
+          <bt:Image id="icon_48_1" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
+          <bt:Image id="icon_48_2" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-128.png"/>
+          <bt:Image id="icon_48_3" DefaultValue="https://mailguard-inky.vercel.app/assets/icon-128.png"/>
         </bt:Images>
         <bt:Urls>
           <bt:Url id="messageReadTaskPaneUrl" DefaultValue="https://mailguard-inky.vercel.app/taskpane.html"/>

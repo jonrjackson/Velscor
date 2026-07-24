@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "./Logo";
 
 export default function Nav() {
   return (
@@ -8,14 +9,20 @@ export default function Nav() {
         position: "sticky",
         top: 0,
         zIndex: 10,
-        background: "var(--bg)",
+        background: "var(--bg-translucent)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
       }}
     >
       <div
         className="container"
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}
       >
-        <Link href="/" style={{ fontWeight: 700, fontSize: 18, textDecoration: "none" }}>
+        <Link
+          href="/"
+          style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 18, textDecoration: "none" }}
+        >
+          <Logo size={26} />
           Velscor
         </Link>
         <nav style={{ display: "flex", gap: 24, alignItems: "center" }}>

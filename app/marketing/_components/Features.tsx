@@ -29,15 +29,7 @@ export default function Features() {
         }}
       >
         {FEATURES.map((f) => (
-          <div
-            key={f.title}
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              padding: 24,
-            }}
-          >
+          <div key={f.title} className="card" style={{ padding: 24 }}>
             <h3 style={{ fontSize: 17, margin: "0 0 8px" }}>{f.title}</h3>
             <p style={{ color: "var(--fg-muted)", fontSize: 15, margin: 0 }}>{f.body}</p>
           </div>

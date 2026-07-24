@@ -16,10 +16,8 @@ export default function Pricing() {
         {tiers.map(([key, tier]) => (
           <div
             key={key}
+            className="card"
             style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
               padding: 24,
               display: "flex",
               flexDirection: "column",

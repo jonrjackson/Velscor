@@ -6,7 +6,7 @@
            xsi:type="MailApp">
 
   <Id>C41FD75D-E813-407E-BDF4-2E6405446166</Id>
-  <Version>1.0.0.4</Version>
+  <Version>1.0.0.5</Version>
   <ProviderName>MailGuard</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="MailGuard"/>
@@ -81,31 +81,6 @@
               </OfficeTab>
             </ExtensionPoint>
           </DesktopFormFactor>
-
-          <MobileFormFactor>
-            <ExtensionPoint xsi:type="MobileMessageReadCommandSurface">
-              <Control xsi:type="MobileButton" id="mobileReadButton">
-                <Label resid="taskPaneButtonLabel"/>
-                <Icon>
-                  <bt:Image size="25" scale="1" resid="icon16"/>
-                  <bt:Image size="25" scale="2" resid="icon32"/>
-                  <bt:Image size="25" scale="3" resid="icon32"/>
-                  <bt:Image size="32" scale="1" resid="icon16"/>
-                  <bt:Image size="32" scale="2" resid="icon32"/>
-                  <bt:Image size="32" scale="3" resid="icon32"/>
-                  <bt:Image size="48" scale="1" resid="icon32"/>
-                  <bt:Image size="48" scale="2" resid="icon80"/>
-                  <bt:Image size="48" scale="3" resid="icon80"/>
-                  <bt:Image size="60" scale="1" resid="icon32"/>
-                  <bt:Image size="60" scale="2" resid="icon80"/>
-                  <bt:Image size="60" scale="3" resid="icon80"/>
-                </Icon>
-                <Action xsi:type="ShowTaskpane">
-                  <SourceLocation resid="messageReadTaskPaneUrl"/>
-                </Action>
-              </Control>
-            </ExtensionPoint>
-          </MobileFormFactor>
 
         </Host>
       </Hosts>

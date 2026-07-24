@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useFormState } from "react-dom";
+import type { FormActionState } from "./formActionState";
 
 interface Tier {
   maxUsers: number;
@@ -12,27 +14,17 @@ export default function LicenseForm({
   tiers,
   submitLabel,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (prevState: FormActionState, formData: FormData) => Promise<FormActionState>;
   tiers: Record<string, Tier>;
   submitLabel: string;
 }) {
   const [scope, setScope] = useState<"org" | "user">("org");
   const [type, setType] = useState<"trial" | "paid">("trial");
-  const [error, setError] = useState<string | null>(null);
+  const [state, formAction] = useFormState(action, { error: null });
 
   return (
-    <form
-      action={async (formData) => {
-        setError(null);
-        try {
-          await action(formData);
-        } catch (err: any) {
-          setError(err?.message || "Something went wrong");
-        }
-      }}
-      style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 480 }}
-    >
-      {error && <p style={{ color: "#ef4444" }}>{error}</p>}
+    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 480 }}>
+      {state.error && <p style={{ color: "#ef4444" }}>{state.error}</p>}
 
       <Field label="Type">
         <select name="type" value={type} onChange={(e) => setType(e.target.value as any)} style={inputStyle}>

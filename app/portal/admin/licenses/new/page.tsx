@@ -4,20 +4,23 @@ import { createLicense, ActionError } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
 import { TIERS } from "../../../../../lib/license";
 import LicenseForm from "../../../_components/LicenseForm";
+import type { FormActionState } from "../../../_components/formActionState";
 
-async function createLicenseAction(formData: FormData) {
+async function createLicenseAction(_prevState: FormActionState, formData: FormData): Promise<FormActionState> {
   "use server";
   const resolved = await resolveRole();
-  if (resolved.role !== "admin") throw new Error("Unauthorized");
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
 
   const body = Object.fromEntries(formData.entries());
+  let key: string;
   try {
     const result = await createLicense(body, getRedis());
-    redirect(`/admin/licenses/${encodeURIComponent((result as any).key)}`);
+    key = (result as any).key;
   } catch (err) {
-    if (err instanceof ActionError) throw new Error(err.message);
+    if (err instanceof ActionError) return { error: err.message };
     throw err;
   }
+  redirect(`/admin/licenses/${encodeURIComponent(key)}`);
 }
 
 export default function NewLicensePage() {

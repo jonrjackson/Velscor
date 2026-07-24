@@ -3,14 +3,12 @@
 import { useFormState } from "react-dom";
 import type { FormActionState } from "./formActionState";
 
-export default function ResellerForm({
+export default function ResellerLicenseEditForm({
   action,
-  submitLabel,
   defaultValues,
 }: {
   action: (prevState: FormActionState, formData: FormData) => Promise<FormActionState>;
-  submitLabel: string;
-  defaultValues?: { name?: string; email?: string; discountPct?: number; maxLicenses?: number; notes?: string };
+  defaultValues: { label?: string; contactEmail?: string; expiresAt: string | null };
 }) {
   const [state, formAction] = useFormState(action, { error: null });
 
@@ -18,24 +16,22 @@ export default function ResellerForm({
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 420 }}>
       {state.error && <p style={{ color: "#ef4444" }}>{state.error}</p>}
 
-      <Field label="Name">
-        <input name="name" defaultValue={defaultValues?.name} required style={inputStyle} />
+      <Field label="Label">
+        <input name="label" defaultValue={defaultValues.label} style={inputStyle} />
       </Field>
-      <Field label="Email">
-        <input name="email" type="email" defaultValue={defaultValues?.email} required style={inputStyle} />
+      <Field label="Contact email">
+        <input name="contactEmail" type="email" defaultValue={defaultValues.contactEmail} style={inputStyle} />
       </Field>
-      <Field label="Discount %">
-        <input name="discountPct" type="number" defaultValue={defaultValues?.discountPct ?? 35} style={inputStyle} />
+      <Field label="Expires (leave blank for never)">
+        <input
+          name="expiresAt"
+          type="date"
+          defaultValue={defaultValues.expiresAt ? defaultValues.expiresAt.slice(0, 10) : ""}
+          style={inputStyle}
+        />
       </Field>
-      <Field label="Max licenses (0 = unlimited)">
-        <input name="maxLicenses" type="number" defaultValue={defaultValues?.maxLicenses ?? 0} style={inputStyle} />
-      </Field>
-      <Field label="Notes">
-        <input name="notes" defaultValue={defaultValues?.notes} style={inputStyle} />
-      </Field>
-
       <button type="submit" className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
-        {submitLabel}
+        Save changes
       </button>
     </form>
   );

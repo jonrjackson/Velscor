@@ -4,38 +4,61 @@ import {
   lookupLicense, updateLicense, deactivateLicense, deleteLicense, rotateKey, getSeatUsage, ActionError,
 } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
+import ConfirmForm from "../../../_components/ConfirmForm";
+import type { FormActionState } from "../../../_components/formActionState";
 
-async function requireAdmin() {
+async function deactivateAction(key: string, _prevState: FormActionState): Promise<FormActionState> {
+  "use server";
   const resolved = await resolveRole();
-  if (resolved.role !== "admin") throw new Error("Unauthorized");
-}
-
-async function deactivateAction(key: string) {
-  "use server";
-  await requireAdmin();
-  await deactivateLicense({ key }, getRedis());
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
+  try {
+    await deactivateLicense({ key }, getRedis());
+  } catch (err) {
+    if (err instanceof ActionError) return { error: err.message };
+    throw err;
+  }
   redirect(`/admin/licenses/${encodeURIComponent(key)}`);
 }
 
-async function reactivateAction(key: string) {
+async function reactivateAction(key: string, _prevState: FormActionState): Promise<FormActionState> {
   "use server";
-  await requireAdmin();
-  await updateLicense({ key, active: true }, getRedis());
+  const resolved = await resolveRole();
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
+  try {
+    await updateLicense({ key, active: true }, getRedis());
+  } catch (err) {
+    if (err instanceof ActionError) return { error: err.message };
+    throw err;
+  }
   redirect(`/admin/licenses/${encodeURIComponent(key)}`);
 }
 
-async function deleteAction(key: string) {
+async function deleteAction(key: string, _prevState: FormActionState): Promise<FormActionState> {
   "use server";
-  await requireAdmin();
-  await deleteLicense({ key }, getRedis());
+  const resolved = await resolveRole();
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
+  try {
+    await deleteLicense({ key }, getRedis());
+  } catch (err) {
+    if (err instanceof ActionError) return { error: err.message };
+    throw err;
+  }
   redirect("/admin/licenses");
 }
 
-async function rotateAction(key: string) {
+async function rotateAction(key: string, _prevState: FormActionState): Promise<FormActionState> {
   "use server";
-  await requireAdmin();
-  const result = await rotateKey({ key }, getRedis());
-  redirect(`/admin/licenses/${encodeURIComponent((result as any).newKey)}`);
+  const resolved = await resolveRole();
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
+  let newKey: string;
+  try {
+    const result = await rotateKey({ key }, getRedis());
+    newKey = (result as any).newKey;
+  } catch (err) {
+    if (err instanceof ActionError) return { error: err.message };
+    throw err;
+  }
+  redirect(`/admin/licenses/${encodeURIComponent(newKey)}`);
 }
 
 export default async function AdminLicenseDetailPage({ params }: { params: { key: string } }) {
@@ -76,22 +99,14 @@ export default async function AdminLicenseDetailPage({ params }: { params: { key
         )}
       </dl>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
         {license.active === false ? (
-          <form action={reactivateAction.bind(null, key)}>
-            <button type="submit" className="btn btn-primary">Reactivate</button>
-          </form>
+          <ConfirmForm action={reactivateAction.bind(null, key)} label="Reactivate" variant="primary" />
         ) : (
-          <form action={deactivateAction.bind(null, key)}>
-            <button type="submit" className="btn btn-secondary">Deactivate</button>
-          </form>
+          <ConfirmForm action={deactivateAction.bind(null, key)} label="Deactivate" />
         )}
-        <form action={rotateAction.bind(null, key)}>
-          <button type="submit" className="btn btn-secondary">Rotate key</button>
-        </form>
-        <form action={deleteAction.bind(null, key)}>
-          <button type="submit" className="btn btn-secondary" style={{ color: "#ef4444" }}>Delete</button>
-        </form>
+        <ConfirmForm action={rotateAction.bind(null, key)} label="Rotate key" />
+        <ConfirmForm action={deleteAction.bind(null, key)} label="Delete" danger />
       </div>
     </>
   );

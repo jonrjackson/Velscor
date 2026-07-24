@@ -3,20 +3,23 @@ import { resolveRole } from "../../../../../lib/auth";
 import { createReseller, ActionError } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
 import ResellerForm from "../../../_components/ResellerForm";
+import type { FormActionState } from "../../../_components/formActionState";
 
-async function createResellerAction(formData: FormData) {
+async function createResellerAction(_prevState: FormActionState, formData: FormData): Promise<FormActionState> {
   "use server";
   const resolved = await resolveRole();
-  if (resolved.role !== "admin") throw new Error("Unauthorized");
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
 
   const body = Object.fromEntries(formData.entries());
+  let resellerKey: string;
   try {
     const result = await createReseller(body, getRedis());
-    redirect(`/admin/resellers/${encodeURIComponent((result as any).resellerKey)}`);
+    resellerKey = (result as any).resellerKey;
   } catch (err) {
-    if (err instanceof ActionError) throw new Error(err.message);
+    if (err instanceof ActionError) return { error: err.message };
     throw err;
   }
+  redirect(`/admin/resellers/${encodeURIComponent(resellerKey)}`);
 }
 
 export default function NewResellerPage() {

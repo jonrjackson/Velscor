@@ -53,6 +53,8 @@ export async function createLicense(body: any, db: Redis) {
   if (contactEmail) record.contactEmail = contactEmail;
   if (discountPct)  record.discountPct  = discountPct;
   if (discountNote) record.discountNote = discountNote;
+  if (body.stripeCustomerId)     record.stripeCustomerId     = String(body.stripeCustomerId);
+  if (body.stripeSubscriptionId) record.stripeSubscriptionId = String(body.stripeSubscriptionId);
 
   await db.set(`license:${key}`, record);
   await db.sadd("all_licenses", key);

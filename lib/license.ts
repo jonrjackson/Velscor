@@ -28,6 +28,8 @@ export interface LicenseRecord {
   discountPct?: number;
   discountNote?: string;
   resellerId?: string;
+  stripeCustomerId?: string;     // set when the license originated from a self-serve Stripe checkout
+  stripeSubscriptionId?: string;
   active?: boolean; // undefined = active (backward compat); false = deactivated
 }
 

@@ -5,7 +5,9 @@ import { generateKey, LicenseRecord } from "../lib/license";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  if (req.headers["x-admin-secret"] !== process.env.ADMIN_SECRET) {
+  const providedSecret = String(req.headers["x-admin-secret"] || "").trim();
+  const expectedSecret = (process.env.ADMIN_SECRET || "").trim();
+  if (!expectedSecret || providedSecret !== expectedSecret) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

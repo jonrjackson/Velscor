@@ -83,7 +83,6 @@
           </DesktopFormFactor>
 
           <MobileFormFactor>
-            <FunctionFile resid="messageReadTaskPaneUrl"/>
             <ExtensionPoint xsi:type="MobileMessageReadCommandSurface">
               <Control xsi:type="MobileButton" id="mobileReadButton">
                 <Label resid="taskPaneButtonLabel"/>

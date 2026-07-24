@@ -16,8 +16,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const scope         = String(body.scope        || "user") as "user" | "org";
   const trialDays     = Number(body.trialDays    ?? 30);
   const tier          = String(body.tier         || "");
-  const allowedEmail  = String(body.allowedEmail  || "");
-  const allowedDomain = String(body.allowedDomain || "");
+  const allowedEmail  = String(body.allowedEmail || "");
+  // Accept allowedDomains (array) or allowedDomain (string) — always store as array
+  const rawDomains = body.allowedDomains ?? body.allowedDomain ?? [];
+  const allowedDomains: string[] = (Array.isArray(rawDomains) ? rawDomains : [rawDomains])
+    .map((d: string) => String(d).toLowerCase().trim())
+    .filter(Boolean);
   const maxUsers      = body.maxUsers != null ? Number(body.maxUsers) : (TIERS[tier]?.maxUsers ?? 0);
   const label         = String(body.label        || "");
   const contactEmail  = String(body.contactEmail || "");
@@ -33,8 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (scope === "user" && !allowedEmail) {
     return res.status(400).json({ error: "allowedEmail is required for user scope" });
   }
-  if (scope === "org" && !allowedDomain) {
-    return res.status(400).json({ error: "allowedDomain is required for org scope" });
+  if (scope === "org" && allowedDomains.length === 0) {
+    return res.status(400).json({ error: "allowedDomain or allowedDomains is required for org scope" });
   }
 
   const redis = new Redis({
@@ -54,8 +58,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : null,
   };
 
-  if (scope === "user")  { record.allowedEmail  = allowedEmail.toLowerCase().trim(); }
-  if (scope === "org")   { record.allowedDomain = allowedDomain.toLowerCase().trim(); record.maxUsers = Number(maxUsers); }
+  if (scope === "user") { record.allowedEmail   = allowedEmail.toLowerCase().trim(); }
+  if (scope === "org")  { record.allowedDomains = allowedDomains; record.maxUsers = Number(maxUsers); }
   if (tier)              { record.tier          = tier; }
   if (label)             { record.label         = label; }
   if (contactEmail)      { record.contactEmail  = contactEmail; }

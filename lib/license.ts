@@ -16,9 +16,10 @@ export interface LicenseRecord {
   createdAt: string;
   expiresAt: string | null;
   // Scope enforcement
-  allowedEmail?: string;    // user scope — specific address
-  allowedDomain?: string;   // org scope — everyone at this domain
-  maxUsers?: number;        // org scope — 0 = unlimited
+  allowedEmail?: string;     // user scope — specific address
+  allowedDomains?: string[]; // org scope — all domains in the tenant
+  allowedDomain?: string;    // legacy single-domain (still supported)
+  maxUsers?: number;         // org scope — 0 = unlimited
   // Metadata (billing reference only, not enforced)
   tier?: string;
   label?: string;
@@ -75,7 +76,11 @@ export async function validateLicense(key: string, userEmail?: string): Promise<
 
     if (record.scope === "org") {
       const userDomain = email.split("@")[1] || "";
-      if (userDomain !== (record.allowedDomain || "").toLowerCase().trim()) {
+      // Support both allowedDomains (array) and legacy allowedDomain (string)
+      const domains = (record.allowedDomains || [])
+        .concat(record.allowedDomain ? [record.allowedDomain] : [])
+        .map(d => d.toLowerCase().trim());
+      if (!domains.includes(userDomain)) {
         return { valid: false, reason: "This license key is registered to a different organization" };
       }
 

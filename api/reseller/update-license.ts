@@ -24,7 +24,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const updated: LicenseRecord = { ...existing };
 
-  // Resellers can upgrade tier, extend expiry, update domains, and update labels
+  // Resellers can convert trial → paid, upgrade tier, extend expiry, update domains/labels
+  if (body.type !== undefined) {
+    const newType = String(body.type) as "trial" | "paid";
+    if (!["trial", "paid"].includes(newType)) {
+      return res.status(400).json({ error: "type must be 'trial' or 'paid'" });
+    }
+    updated.type = newType;
+    if (newType === "paid") updated.expiresAt = null; // paid licenses don't expire
+  }
   if (body.tier !== undefined) {
     updated.tier = String(body.tier);
     if (body.maxUsers === undefined && TIERS[updated.tier]) {

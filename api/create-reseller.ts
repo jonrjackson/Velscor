@@ -13,8 +13,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body        = req.body || {};
   const name        = String(body.name        || "").trim();
   const email       = String(body.email       || "").trim();
-  const discountPct = Number(body.discountPct ?? 35);
-  const notes       = String(body.notes       || "");
+  const discountPct   = Number(body.discountPct  ?? 35);
+  const maxLicenses   = Number(body.maxLicenses  ?? 0);
+  const notes         = String(body.notes        || "");
 
   if (!name)  return res.status(400).json({ error: "name is required" });
   if (!email) return res.status(400).json({ error: "email is required" });
@@ -29,10 +30,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     discountPct,
     createdAt: new Date().toISOString(),
     active: true,
-    ...(notes && { notes }),
+    ...(maxLicenses && { maxLicenses }),
+    ...(notes       && { notes }),
   };
 
-  await getRedis().set(`reseller:${key}`, record);
+  const redis = getRedis();
+  await redis.set(`reseller:${key}`, record);
+  await redis.sadd("all_resellers", key);
 
   return res.status(200).json({ resellerKey: key, ...record });
 }

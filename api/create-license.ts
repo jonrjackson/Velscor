@@ -67,12 +67,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (discountNote)      { record.discountNote  = discountNote; }
 
   await redis.set(`license:${key}`, record);
+  await redis.sadd("all_licenses", key);
 
-  // Maintain domain index so auto-provision can find this license by domain
   if (scope === "org") {
     for (const domain of allowedDomains) {
       await redis.sadd(`org_domain:${domain}`, key);
     }
+  }
+  if (scope === "user" && record.allowedEmail) {
+    await redis.set(`email_license:${record.allowedEmail}`, key);
   }
 
   return res.status(200).json({ key, ...record });

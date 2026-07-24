@@ -6,6 +6,7 @@ export interface ResellerRecord {
   discountPct: number;
   createdAt: string;
   active: boolean;
+  maxLicenses?: number; // 0 = unlimited
   notes?: string;
 }
 

@@ -42,7 +42,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const redis: Redis = getRedis();
-  const key          = generateKey();
+
+  // Enforce license cap if set
+  const maxLicenses = auth.reseller!.maxLicenses ?? 0;
+  if (maxLicenses > 0) {
+    const currentCount = await redis.scard(`reseller_licenses:${resellerKey}`);
+    if (currentCount >= maxLicenses) {
+      return res.status(403).json({ error: `License limit (${maxLicenses}) reached for your account. Contact support to increase your limit.` });
+    }
+  }
+
+  const key = generateKey();
   const now          = new Date();
 
   const record: LicenseRecord = {
@@ -63,6 +73,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   await redis.set(`license:${key}`, record);
   await redis.sadd(`reseller_licenses:${resellerKey}`, key);
+  await redis.sadd("all_licenses", key);
+  if (scope === "user" && record.allowedEmail) {
+    await redis.set(`email_license:${record.allowedEmail}`, key);
+  }
 
   if (scope === "org") {
     for (const domain of allowedDomains) {

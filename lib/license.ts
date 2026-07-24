@@ -27,6 +27,7 @@ export interface LicenseRecord {
   discountPct?: number;
   discountNote?: string;
   resellerId?: string;
+  active?: boolean; // undefined = active (backward compat); false = deactivated
 }
 
 export interface LicenseValidation {
@@ -59,6 +60,7 @@ export async function validateByEmail(userEmail: string): Promise<LicenseValidat
   for (const key of keys) {
     const record = await redis.get<LicenseRecord>(`license:${key}`);
     if (!record) continue;
+    if (record.active === false) continue;
     if (record.expiresAt && new Date(record.expiresAt) < new Date()) continue;
 
     // Enforce seat limit
@@ -91,8 +93,8 @@ export async function validateLicense(key: string, userEmail?: string): Promise<
 
   const redis = getRedis();
   const record = await redis.get<LicenseRecord>(`license:${key}`);
-  if (!record) return { valid: false, reason: "Invalid license key" };
-
+  if (!record)                 return { valid: false, reason: "Invalid license key" };
+  if (record.active === false) return { valid: false, reason: "License has been deactivated" };
   if (record.expiresAt && new Date(record.expiresAt) < new Date()) {
     return { valid: false, reason: "License has expired" };
   }

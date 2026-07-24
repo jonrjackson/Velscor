@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "description": "Velscor — AI-powered email threat detection for Outlook",
   "scripts": {
-    "build": "webpack --mode production",
-    "dev": "webpack --mode development --watch"
+    "build": "webpack --mode production && next build",
+    "dev": "webpack --mode development --watch",
+    "dev:web": "next dev"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.0",
     "@upstash/redis": "^1.38.0",
+    "next": "^14.2.35",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

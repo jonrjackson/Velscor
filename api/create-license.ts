@@ -68,5 +68,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   await redis.set(`license:${key}`, record);
 
+  // Maintain domain index so auto-provision can find this license by domain
+  if (scope === "org") {
+    for (const domain of allowedDomains) {
+      await redis.sadd(`org_domain:${domain}`, key);
+    }
+  }
+
   return res.status(200).json({ key, ...record });
 }

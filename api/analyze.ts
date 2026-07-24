@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
-import { validateLicense } from "../lib/license";
+import { validateLicense, validateByEmail } from "../lib/license";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -9,9 +9,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { subject, body, sender, senderEmail, replyTo, returnPath, authResults, licenseKey, userEmail } = req.body || {};
+  const { subject, body, sender, senderEmail, replyTo, returnPath, authResults, licenseKey, userEmail, autoLicensedEmail } = req.body || {};
 
-  const license = await validateLicense(String(licenseKey || ""), userEmail ? String(userEmail) : undefined);
+  const license = autoLicensedEmail
+    ? await validateByEmail(String(autoLicensedEmail))
+    : await validateLicense(String(licenseKey || ""), userEmail ? String(userEmail) : undefined);
+
   if (!license.valid) {
     return res.status(403).json({ error: license.reason || "Invalid license" });
   }

@@ -23,7 +23,8 @@ const VERDICT_STYLES = {
   SPAM:       { color: "#b91c1c", bg: "#fef2f2", icon: "✗", label: "Spam / Phishing" },
 };
 
-const STORAGE_KEY = "mailguard_license";
+const STORAGE_KEY      = "mailguard_license";
+const AUTO_STORAGE_KEY = "mailguard_auto";
 
 function daysRemaining(expiresAt: string): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000));
@@ -118,13 +119,14 @@ function App() {
   }, []);
 
   // License state
-  const [licenseStatus, setLicenseStatus] = React.useState<LicenseStatus>("checking");
-  const [licenseKey, setLicenseKey]       = React.useState<string | null>(null);
-  const [licenseType, setLicenseType]     = React.useState<string | null>(null);
-  const [licenseExpiry, setLicenseExpiry] = React.useState<string | null>(null);
-  const [licenseInput, setLicenseInput]   = React.useState("");
-  const [licenseError, setLicenseError]   = React.useState<string | null>(null);
-  const [activating, setActivating]       = React.useState(false);
+  const [licenseStatus, setLicenseStatus]   = React.useState<LicenseStatus>("checking");
+  const [licenseKey, setLicenseKey]         = React.useState<string | null>(null);
+  const [autoProvisioned, setAutoProvisioned] = React.useState(false);
+  const [licenseType, setLicenseType]       = React.useState<string | null>(null);
+  const [licenseExpiry, setLicenseExpiry]   = React.useState<string | null>(null);
+  const [licenseInput, setLicenseInput]     = React.useState("");
+  const [licenseError, setLicenseError]     = React.useState<string | null>(null);
+  const [activating, setActivating]         = React.useState(false);
 
   // Email analysis state
   const [loading, setLoading]             = React.useState(false);
@@ -133,22 +135,70 @@ function App() {
   const [analyzedLabel, setAnalyzedLabel] = React.useState("This email");
   const [attachments, setAttachments]     = React.useState<EmailAttachment[]>([]);
 
-  const hasAnalyzed = React.useRef(false);
+  const hasAnalyzed    = React.useRef(false);
+  const analyzeEmailRef = React.useRef<() => Promise<void>>(async () => {});
 
-  // On mount: check for saved license
+  // Keep ref pointing at the latest analyzeEmail so ItemChanged handler stays current
+  React.useEffect(() => { analyzeEmailRef.current = analyzeEmail; });
+
+  // On mount: check saved key, then try auto-provision, then show entry screen
   React.useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) { setLicenseStatus("unlicensed"); return; }
-    checkLicense(saved, false);
+    const savedKey = localStorage.getItem(STORAGE_KEY);
+    if (savedKey) { checkLicense(savedKey, false); return; }
+
+    // Try auto-provision using the user's Outlook email
+    if (userEmail) {
+      tryAutoProvision();
+    } else {
+      setLicenseStatus("unlicensed");
+    }
   }, []);
 
-  // Auto-analyze once license is confirmed
+  // Auto-analyze once licensed; register ItemChanged handler for email navigation
   React.useEffect(() => {
-    if (licenseStatus === "licensed" && !hasAnalyzed.current) {
+    if (licenseStatus !== "licensed") return;
+
+    if (!hasAnalyzed.current) {
       hasAnalyzed.current = true;
       analyzeEmail();
     }
+
+    // Re-analyze automatically when the user selects a different email
+    const mailbox = (Office as any).context.mailbox;
+    if (mailbox.addHandlerAsync) {
+      mailbox.addHandlerAsync(
+        (Office as any).EventType.ItemChanged,
+        () => {
+          setResult(null);
+          setError(null);
+          setAttachments([]);
+          analyzeEmailRef.current();
+        }
+      );
+    }
   }, [licenseStatus]);
+
+  const tryAutoProvision = async () => {
+    try {
+      const res  = await fetch("/api/auto-provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        localStorage.setItem(AUTO_STORAGE_KEY, JSON.stringify({ email: userEmail, checkedAt: Date.now() }));
+        setAutoProvisioned(true);
+        setLicenseType(data.type || "org");
+        setLicenseExpiry(data.expiresAt || null);
+        setLicenseStatus("licensed");
+      } else {
+        setLicenseStatus("unlicensed");
+      }
+    } catch {
+      setLicenseStatus("unlicensed");
+    }
+  };
 
   const checkLicense = async (key: string, save: boolean) => {
     try {
@@ -188,7 +238,12 @@ function App() {
     const response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, licenseKey, userEmail }),
+      body: JSON.stringify({
+        ...data,
+        ...(autoProvisioned
+          ? { autoLicensedEmail: userEmail }
+          : { licenseKey, userEmail }),
+      }),
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -375,6 +430,13 @@ function App() {
           </span>
         )}
       </div>
+
+      {/* Expiry warning */}
+      {licenseExpiry && licenseType !== "permanent" && daysRemaining(licenseExpiry) <= 7 && (
+        <div style={{ padding: "10px 12px", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "8px", marginBottom: "14px", fontSize: "12px", color: "#92400e" }}>
+          ⚠ Your license expires in {daysRemaining(licenseExpiry)} day{daysRemaining(licenseExpiry) !== 1 ? "s" : ""}. Contact your admin to renew.
+        </div>
+      )}
 
       {/* What was analyzed */}
       {!loading && (result || error) && (

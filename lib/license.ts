@@ -47,6 +47,38 @@ function getRedis(): Redis {
   return _redis;
 }
 
+// Validate by domain — used for auto-provisioned org users (no key required)
+export async function validateByEmail(userEmail: string): Promise<LicenseValidation> {
+  const domain = userEmail.split("@")[1]?.toLowerCase().trim();
+  if (!domain) return { valid: false, reason: "Invalid email address" };
+
+  const redis = getRedis();
+  const keys: string[] = await redis.smembers(`org_domain:${domain}`);
+
+  for (const key of keys) {
+    const record = await redis.get<LicenseRecord>(`license:${key}`);
+    if (!record) continue;
+    if (record.expiresAt && new Date(record.expiresAt) < new Date()) continue;
+
+    // Enforce seat limit
+    const maxUsers = record.maxUsers ?? 0;
+    if (maxUsers > 0) {
+      const usersKey = `license_users:${key}`;
+      const email    = userEmail.toLowerCase().trim();
+      const seen     = await redis.sismember(usersKey, email);
+      if (!seen) {
+        const count = await redis.scard(usersKey);
+        if (count >= maxUsers) continue; // seat limit hit — try next key
+        await redis.sadd(usersKey, email);
+      }
+    }
+
+    return { valid: true, type: record.type, scope: record.scope, expiresAt: record.expiresAt };
+  }
+
+  return { valid: false, reason: "No active license found for your organization" };
+}
+
 export async function validateLicense(key: string, userEmail?: string): Promise<LicenseValidation> {
   if (!key) return { valid: false, reason: "No license key provided" };
 

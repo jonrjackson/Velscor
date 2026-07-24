@@ -9,5 +9,5 @@
     "resolveJsonModule": true,
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "public", "dist"]
+  "exclude": ["node_modules", "public", "dist", "app", ".next"]
 }

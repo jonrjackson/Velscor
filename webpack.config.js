@@ -30,6 +30,7 @@ module.exports = {
       patterns: [
         { from: "assets", to: "assets" },
         { from: "manifest.xml", to: "manifest.xml" },
+        { from: "public-static", to: "." },
       ],
     }),
   ],

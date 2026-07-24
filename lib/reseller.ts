@@ -8,6 +8,7 @@ export interface ResellerRecord {
   active: boolean;
   maxLicenses?: number; // 0 = unlimited
   notes?: string;
+  clerkUserId?: string; // set once the reseller has logged into the management portal
 }
 
 export interface ResellerValidation {

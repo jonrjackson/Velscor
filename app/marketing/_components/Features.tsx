@@ -1,7 +1,7 @@
 const FEATURES = [
   {
     title: "Real-time AI verdicts",
-    body: "Every message is analyzed by Claude and classified as safe, suspicious, or spam &mdash; directly in the Outlook reading pane.",
+    body: "Every message is analyzed by Claude and classified as safe, suspicious, or spam — directly in the Outlook reading pane.",
   },
   {
     title: "Spoofing detection",
@@ -9,7 +9,7 @@ const FEATURES = [
   },
   {
     title: "QR-code phishing detection",
-    body: "Flags emails using QR codes as a phishing tactic &mdash; a growing attack vector that most filters miss entirely.",
+    body: "Flags emails using QR codes as a phishing tactic — a growing attack vector that most filters miss entirely.",
   },
   {
     title: "Per-org and per-user licensing",

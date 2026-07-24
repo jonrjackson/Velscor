@@ -1,4 +1,6 @@
 import { TIERS } from "../../../lib/license";
+import { startCheckout } from "../../../lib/checkout-actions";
+import CheckoutButton from "./CheckoutButton";
 
 export default function Pricing() {
   const tiers = Object.entries(TIERS);
@@ -40,9 +42,13 @@ export default function Pricing() {
                 tier.priceNote || "Contact us"
               )}
             </p>
-            <a href="mailto:jon@jonandtrace.com" className="btn btn-secondary" style={{ justifyContent: "center" }}>
-              {tier.priceMonthly != null ? "Get started" : "Contact sales"}
-            </a>
+            {tier.priceMonthly != null ? (
+              <CheckoutButton action={startCheckout.bind(null, key)} label="Get started" />
+            ) : (
+              <a href="mailto:jon@jonandtrace.com" className="btn btn-secondary" style={{ justifyContent: "center" }}>
+                Contact sales
+              </a>
+            )}
           </div>
         ))}
       </div>

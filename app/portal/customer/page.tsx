@@ -2,6 +2,28 @@ import { redirect } from "next/navigation";
 import { resolveRole } from "../../../lib/auth";
 import { getSeatUsage } from "../../../lib/admin-actions";
 import { getRedis } from "../../../lib/reseller";
+import { getStripe } from "../../../lib/stripe";
+import ConfirmForm from "../_components/ConfirmForm";
+import type { FormActionState } from "../_components/formActionState";
+
+async function openBillingPortal(stripeCustomerId: string, _prevState: FormActionState): Promise<FormActionState> {
+  "use server";
+  const resolved = await resolveRole();
+  if (resolved.role !== "customer") return { error: "Unauthorized" };
+
+  let url: string | null;
+  try {
+    const session = await getStripe().billingPortal.sessions.create({
+      customer: stripeCustomerId,
+      return_url: "https://app.velscor.com/customer",
+    });
+    url = session.url;
+  } catch {
+    return { error: "Couldn't open billing portal. Please try again." };
+  }
+
+  redirect(url);
+}
 
 export default async function CustomerHome() {
   const resolved = await resolveRole();
@@ -27,7 +49,7 @@ export default async function CustomerHome() {
                 <span style={{ fontFamily: "monospace", fontSize: 15 }}>{l.key}</span>
                 <StatusBadge status={status} />
               </div>
-              <dl style={{ display: "grid", gridTemplateColumns: "140px 1fr", rowGap: 8, fontSize: 14 }}>
+              <dl style={{ display: "grid", gridTemplateColumns: "140px 1fr", rowGap: 8, fontSize: 14, marginBottom: l.stripeCustomerId ? 16 : 0 }}>
                 <dt style={{ color: "var(--fg-muted)" }}>Plan</dt>
                 <dd>{l.tier || l.type}</dd>
                 <dt style={{ color: "var(--fg-muted)" }}>Expires</dt>
@@ -39,6 +61,9 @@ export default async function CustomerHome() {
                   </>
                 )}
               </dl>
+              {l.stripeCustomerId && (
+                <ConfirmForm action={openBillingPortal.bind(null, l.stripeCustomerId)} label="Manage billing" variant="secondary" />
+              )}
             </div>
           );
         })}

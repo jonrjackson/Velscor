@@ -23,8 +23,8 @@ const VERDICT_STYLES = {
   SPAM:       { color: "#b91c1c", bg: "#fef2f2", icon: "✗", label: "Spam / Phishing" },
 };
 
-const STORAGE_KEY      = "mailguard_license";
-const AUTO_STORAGE_KEY = "mailguard_auto";
+const STORAGE_KEY      = "velscor_license";
+const AUTO_STORAGE_KEY = "velscor_auto";
 
 function daysRemaining(expiresAt: string): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000));
@@ -363,7 +363,7 @@ function App() {
   if (licenseStatus === "checking") {
     return (
       <div style={{ padding: "16px", maxWidth: "380px", margin: "0 auto", textAlign: "center", paddingTop: "60px", color: "#6b7280" }}>
-        <div style={{ fontSize: "18px", fontWeight: 700, color: "#0078d4", marginBottom: "8px" }}>MailGuard</div>
+        <div style={{ fontSize: "18px", fontWeight: 700, color: "#0078d4", marginBottom: "8px" }}>Velscor</div>
         <div style={{ fontSize: "13px" }}>Checking license…</div>
       </div>
     );
@@ -374,7 +374,7 @@ function App() {
     return (
       <div style={{ padding: "24px", maxWidth: "380px", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <div style={{ fontSize: "22px", fontWeight: 700, color: "#0078d4" }}>MailGuard</div>
+          <div style={{ fontSize: "22px", fontWeight: 700, color: "#0078d4" }}>Velscor</div>
           <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "4px" }}>AI Spam Detector</div>
         </div>
 
@@ -384,7 +384,7 @@ function App() {
 
         <input
           type="text"
-          placeholder="MG-XXXX-XXXX-XXXX-XXXX"
+          placeholder="VS-XXXX-XXXX-XXXX-XXXX"
           value={licenseInput}
           onChange={(e) => setLicenseInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && activateLicense()}
@@ -422,7 +422,7 @@ function App() {
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", marginBottom: "20px", borderBottom: "1px solid #e5e7eb", paddingBottom: "12px" }}>
-        <span style={{ fontSize: "18px", fontWeight: 700, color: "#0078d4" }}>MailGuard</span>
+        <span style={{ fontSize: "18px", fontWeight: 700, color: "#0078d4" }}>Velscor</span>
         <span style={{ marginLeft: "8px", fontSize: "11px", color: "#6b7280", background: "#f3f4f6", padding: "2px 8px", borderRadius: "999px" }}>AI Spam Detector</span>
         {licenseBadge && (
           <span style={{ marginLeft: "auto", fontSize: "10px", color: licenseBadge.color, fontWeight: 600 }}>

@@ -40,5 +40,5 @@ export function generateResellerKey(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const seg = () =>
     Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-  return `MGR-${seg()}-${seg()}-${seg()}`;
+  return `VSR-${seg()}-${seg()}-${seg()}`;
 }

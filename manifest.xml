@@ -6,14 +6,14 @@
            xsi:type="MailApp">
 
   <Id>C41FD75D-E813-407E-BDF4-2E6405446166</Id>
-  <Version>1.0.0.6</Version>
-  <ProviderName>MailGuard</ProviderName>
+  <Version>1.0.0.7</Version>
+  <ProviderName>Velscor</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="MailGuard"/>
+  <DisplayName DefaultValue="Velscor"/>
   <Description DefaultValue="AI-powered spam and phishing detector for Outlook"/>
   <IconUrl DefaultValue="https://mailguard-inky.vercel.app/assets/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://mailguard-inky.vercel.app/assets/icon-128.png"/>
-  <SupportUrl DefaultValue="https://github.com/jonrjackson/mailguard"/>
+  <SupportUrl DefaultValue="https://velscor.com/support"/>
 
   <AppDomains>
     <AppDomain>https://mailguard-inky.vercel.app</AppDomain>
@@ -128,8 +128,8 @@
           <bt:Url id="messageReadTaskPaneUrl" DefaultValue="https://mailguard-inky.vercel.app/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
-          <bt:String id="groupLabel" DefaultValue="MailGuard"/>
-          <bt:String id="taskPaneButtonLabel" DefaultValue="MailGuard"/>
+          <bt:String id="groupLabel" DefaultValue="Velscor"/>
+          <bt:String id="taskPaneButtonLabel" DefaultValue="Velscor"/>
         </bt:ShortStrings>
         <bt:LongStrings>
           <bt:String id="taskPaneButtonDescription" DefaultValue="Check this email for spam and phishing."/>

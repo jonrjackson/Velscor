@@ -1,24 +1,25 @@
 export default function Logo({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill="#16233f" />
+      <rect x="6" y="8.5" width="12" height="8.5" rx="1.2" stroke="#c7d4ea" strokeWidth="1.3" fill="none" />
       <path
-        d="M12 2L4 5V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V5L12 2Z"
-        fill="url(#velscor-logo-grad)"
-      />
-      <path
-        d="M8.5 12.5L10.5 14.5L15.5 9.5"
-        stroke="white"
-        strokeWidth="1.75"
+        d="M6.4 9L12 13.2L17.6 9"
+        stroke="#c7d4ea"
+        strokeWidth="1.3"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <defs>
-        <linearGradient id="velscor-logo-grad" x1="4" y1="2" x2="20" y2="23" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#6C9BFF" />
-          <stop offset="1" stopColor="#2563EB" />
-        </linearGradient>
-      </defs>
+      <circle cx="16.5" cy="16.5" r="4.3" fill="#22c55e" stroke="#16233f" strokeWidth="1.2" />
+      <path
+        d="M14.6 16.6L15.9 17.9L18.4 15.2"
+        stroke="white"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </svg>
   );
 }

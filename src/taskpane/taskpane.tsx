@@ -15,11 +15,19 @@ interface EmailAttachment {
   name: string;
 }
 
+type LicenseStatus = "checking" | "unlicensed" | "licensed";
+
 const VERDICT_STYLES = {
   SAFE:       { color: "#107c10", bg: "#e8f5e9", icon: "✓", label: "Safe" },
   SUSPICIOUS: { color: "#b45309", bg: "#fffbeb", icon: "⚠", label: "Suspicious" },
   SPAM:       { color: "#b91c1c", bg: "#fef2f2", icon: "✗", label: "Spam / Phishing" },
 };
+
+const STORAGE_KEY = "mailguard_license";
+
+function daysRemaining(expiresAt: string): number {
+  return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000));
+}
 
 function parseHeaders(headerText: string): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -42,7 +50,6 @@ function parseHeaders(headerText: string): Record<string, string> {
 function parseEml(rawEml: string) {
   const result = { sender: "", senderEmail: "", subject: "", replyTo: "", returnPath: "", authResults: "", body: "" };
 
-  // Normalize all line endings to \n so the parser works regardless of CRLF/LF
   const emlText = rawEml.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
   const splitIdx = emlText.indexOf("\n\n");
@@ -53,7 +60,6 @@ function parseEml(rawEml: string) {
 
   const headers = parseHeaders(headerSection);
 
-  // From
   const from = headers["from"] || "";
   const fromMatch = from.match(/^(.*?)\s*<(.+?)>$/);
   if (fromMatch) {
@@ -63,21 +69,17 @@ function parseEml(rawEml: string) {
     result.senderEmail = from.trim();
   }
 
-  // Subject (strip encoded-word encoding like =?UTF-8?Q?...?= as best-effort)
   result.subject = (headers["subject"] || "").replace(/=\?[^?]+\?[BQ]\?[^?]+\?=/gi, "").trim();
 
-  // Reply-To
   const rt = headers["reply-to"] || "";
   const rtMatch = rt.match(/<(.+?)>/);
   result.replyTo = rtMatch ? rtMatch[1] : rt.trim();
 
-  // Return-Path and authentication results
   const rp = headers["return-path"] || "";
   const rpMatch = rp.match(/<(.+?)>/);
   result.returnPath = rpMatch ? rpMatch[1] : rp.trim();
   result.authResults = headers["authentication-results"] || headers["arc-authentication-results"] || "";
 
-  // Body — extract text/plain from multipart, otherwise decode directly
   const ct = headers["content-type"] || "";
   if (ct.toLowerCase().includes("multipart")) {
     const bm = ct.match(/boundary="?([^";\s\r]+)"?/);
@@ -109,19 +111,84 @@ function parseEml(rawEml: string) {
 }
 
 function App() {
+  // License state
+  const [licenseStatus, setLicenseStatus] = React.useState<LicenseStatus>("checking");
+  const [licenseKey, setLicenseKey]       = React.useState<string | null>(null);
+  const [licenseType, setLicenseType]     = React.useState<string | null>(null);
+  const [licenseExpiry, setLicenseExpiry] = React.useState<string | null>(null);
+  const [licenseInput, setLicenseInput]   = React.useState("");
+  const [licenseError, setLicenseError]   = React.useState<string | null>(null);
+  const [activating, setActivating]       = React.useState(false);
+
+  // Email analysis state
   const [loading, setLoading]             = React.useState(false);
   const [result, setResult]               = React.useState<AnalysisResult | null>(null);
   const [error, setError]                 = React.useState<string | null>(null);
   const [analyzedLabel, setAnalyzedLabel] = React.useState("This email");
   const [attachments, setAttachments]     = React.useState<EmailAttachment[]>([]);
 
+  const hasAnalyzed = React.useRef(false);
+
+  // On mount: check for saved license
+  React.useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) { setLicenseStatus("unlicensed"); return; }
+    checkLicense(saved, false);
+  }, []);
+
+  // Auto-analyze once license is confirmed
+  React.useEffect(() => {
+    if (licenseStatus === "licensed" && !hasAnalyzed.current) {
+      hasAnalyzed.current = true;
+      analyzeEmail();
+    }
+  }, [licenseStatus]);
+
+  const checkLicense = async (key: string, save: boolean) => {
+    try {
+      const res  = await fetch("/api/validate-license", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        if (save) localStorage.setItem(STORAGE_KEY, key);
+        setLicenseKey(key);
+        setLicenseType(data.type || null);
+        setLicenseExpiry(data.expiresAt || null);
+        setLicenseStatus("licensed");
+      } else {
+        if (!save) localStorage.removeItem(STORAGE_KEY);
+        setLicenseStatus("unlicensed");
+        if (save) setLicenseError(data.reason || "Invalid license key");
+      }
+    } catch {
+      if (!save) setLicenseStatus("unlicensed");
+      if (save) setLicenseError("Could not reach license server");
+    }
+  };
+
+  const activateLicense = async () => {
+    const key = licenseInput.trim().toUpperCase();
+    if (!key) return;
+    setActivating(true);
+    setLicenseError(null);
+    await checkLicense(key, true);
+    setActivating(false);
+  };
+
   const callApi = async (data: object): Promise<AnalysisResult> => {
     const response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, licenseKey }),
     });
-    if (!response.ok) throw new Error("Analysis service unavailable");
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      if (response.status === 403) throw new Error(err.error || "License invalid or expired");
+      throw new Error("Analysis service unavailable");
+    }
     return response.json();
   };
 
@@ -139,8 +206,6 @@ function App() {
       const subject     = item.subject            || "";
       const replyTo     = item.replyTo?.length > 0 ? item.replyTo[0].emailAddress : "";
 
-      // Detect email-type attachments — Outlook Win32 may return the type as a
-      // string ("item"), a number (1), or an enum object, so we cast to string.
       setAttachments(
         (item.attachments || [])
           .filter((a: any) => {
@@ -204,7 +269,6 @@ function App() {
         );
       });
 
-      // Item attachments return EML text directly; file attachments return base64
       const emlText = (format === "base64" || format === "Base64")
         ? atob(content.replace(/\s/g, ""))
         : content;
@@ -222,10 +286,76 @@ function App() {
     }
   };
 
-  React.useEffect(() => { analyzeEmail(); }, []);
-
   const vstyle = result ? VERDICT_STYLES[result.verdict] : null;
 
+  // ── License badge ──────────────────────────────────────────────────────────
+  const licenseBadge = (() => {
+    if (licenseType === "permanent") return { text: "Licensed ✓", color: "#107c10" };
+    if (licenseType === "trial" && licenseExpiry) {
+      const days = daysRemaining(licenseExpiry);
+      return { text: `Trial — ${days}d left`, color: days <= 7 ? "#b45309" : "#0369a1" };
+    }
+    return null;
+  })();
+
+  // ── Checking license ───────────────────────────────────────────────────────
+  if (licenseStatus === "checking") {
+    return (
+      <div style={{ padding: "16px", maxWidth: "380px", margin: "0 auto", textAlign: "center", paddingTop: "60px", color: "#6b7280" }}>
+        <div style={{ fontSize: "18px", fontWeight: 700, color: "#0078d4", marginBottom: "8px" }}>MailGuard</div>
+        <div style={{ fontSize: "13px" }}>Checking license…</div>
+      </div>
+    );
+  }
+
+  // ── License entry screen ───────────────────────────────────────────────────
+  if (licenseStatus === "unlicensed") {
+    return (
+      <div style={{ padding: "24px", maxWidth: "380px", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div style={{ fontSize: "22px", fontWeight: 700, color: "#0078d4" }}>MailGuard</div>
+          <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "4px" }}>AI Spam Detector</div>
+        </div>
+
+        <div style={{ fontSize: "13px", color: "#374151", marginBottom: "16px", textAlign: "center" }}>
+          Enter your license key to get started.
+        </div>
+
+        <input
+          type="text"
+          placeholder="MG-XXXX-XXXX-XXXX-XXXX"
+          value={licenseInput}
+          onChange={(e) => setLicenseInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && activateLicense()}
+          style={{
+            width: "100%", boxSizing: "border-box", padding: "10px 12px",
+            border: "1px solid #d1d5db", borderRadius: "6px", fontSize: "14px",
+            fontFamily: "monospace", marginBottom: "10px", outline: "none",
+          }}
+        />
+
+        {licenseError && (
+          <div style={{ fontSize: "12px", color: "#b91c1c", marginBottom: "10px", padding: "8px 10px", background: "#fef2f2", borderRadius: "6px" }}>
+            {licenseError}
+          </div>
+        )}
+
+        <button
+          onClick={activateLicense}
+          disabled={activating}
+          style={{
+            width: "100%", padding: "10px", background: activating ? "#93c5fd" : "#0078d4",
+            color: "#fff", border: "none", borderRadius: "6px", fontSize: "14px",
+            fontFamily: "Segoe UI, sans-serif", cursor: activating ? "default" : "pointer", fontWeight: 500,
+          }}
+        >
+          {activating ? "Checking…" : "Activate License"}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Main analysis UI ───────────────────────────────────────────────────────
   return (
     <div style={{ padding: "16px", maxWidth: "380px", margin: "0 auto" }}>
 
@@ -233,6 +363,11 @@ function App() {
       <div style={{ display: "flex", alignItems: "center", marginBottom: "20px", borderBottom: "1px solid #e5e7eb", paddingBottom: "12px" }}>
         <span style={{ fontSize: "18px", fontWeight: 700, color: "#0078d4" }}>MailGuard</span>
         <span style={{ marginLeft: "8px", fontSize: "11px", color: "#6b7280", background: "#f3f4f6", padding: "2px 8px", borderRadius: "999px" }}>AI Spam Detector</span>
+        {licenseBadge && (
+          <span style={{ marginLeft: "auto", fontSize: "10px", color: licenseBadge.color, fontWeight: 600 }}>
+            {licenseBadge.text}
+          </span>
+        )}
       </div>
 
       {/* What was analyzed */}
@@ -246,7 +381,7 @@ function App() {
       {loading && (
         <div style={{ textAlign: "center", padding: "40px 0", color: "#6b7280" }}>
           <div style={{ fontSize: "28px", marginBottom: "10px" }}>🔍</div>
-          <div style={{ fontSize: "14px" }}>Analyzing {analyzedLabel.toLowerCase()}...</div>
+          <div style={{ fontSize: "14px" }}>Analyzing {analyzedLabel.toLowerCase()}…</div>
         </div>
       )}
 

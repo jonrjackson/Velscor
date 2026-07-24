@@ -6,17 +6,17 @@
            xsi:type="MailApp">
 
   <Id>C41FD75D-E813-407E-BDF4-2E6405446166</Id>
-  <Version>1.0.0.9</Version>
+  <Version>1.0.1.0</Version>
   <ProviderName>Velscor</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Velscor"/>
   <Description DefaultValue="AI-powered spam and phishing detector for Outlook"/>
-  <IconUrl DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-  <HighResolutionIconUrl DefaultValue="https://www.velscor.com/assets/icon-128.png"/>
-  <SupportUrl DefaultValue="https://www.velscor.com/support"/>
+  <IconUrl DefaultValue="https://velscor.com/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://velscor.com/assets/icon-128.png"/>
+  <SupportUrl DefaultValue="https://velscor.com/support"/>
 
   <AppDomains>
-    <AppDomain>https://www.velscor.com</AppDomain>
+    <AppDomain>https://velscor.com</AppDomain>
   </AppDomains>
 
   <Hosts>
@@ -33,7 +33,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://www.velscor.com/taskpane.html"/>
+        <SourceLocation DefaultValue="https://velscor.com/taskpane.html"/>
         <RequestedHeight>450</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -111,21 +111,21 @@
       </Hosts>
       <Resources>
         <bt:Images>
-          <bt:Image id="icon16" DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-          <bt:Image id="icon32" DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-          <bt:Image id="icon80" DefaultValue="https://www.velscor.com/assets/icon-128.png"/>
-          <bt:Image id="icon_25_1" DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-          <bt:Image id="icon_25_2" DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-          <bt:Image id="icon_25_3" DefaultValue="https://www.velscor.com/assets/icon-128.png"/>
-          <bt:Image id="icon_32_1" DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-          <bt:Image id="icon_32_2" DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-          <bt:Image id="icon_32_3" DefaultValue="https://www.velscor.com/assets/icon-128.png"/>
-          <bt:Image id="icon_48_1" DefaultValue="https://www.velscor.com/assets/icon-64.png"/>
-          <bt:Image id="icon_48_2" DefaultValue="https://www.velscor.com/assets/icon-128.png"/>
-          <bt:Image id="icon_48_3" DefaultValue="https://www.velscor.com/assets/icon-128.png"/>
+          <bt:Image id="icon16" DefaultValue="https://velscor.com/assets/icon-64.png"/>
+          <bt:Image id="icon32" DefaultValue="https://velscor.com/assets/icon-64.png"/>
+          <bt:Image id="icon80" DefaultValue="https://velscor.com/assets/icon-128.png"/>
+          <bt:Image id="icon_25_1" DefaultValue="https://velscor.com/assets/icon-64.png"/>
+          <bt:Image id="icon_25_2" DefaultValue="https://velscor.com/assets/icon-64.png"/>
+          <bt:Image id="icon_25_3" DefaultValue="https://velscor.com/assets/icon-128.png"/>
+          <bt:Image id="icon_32_1" DefaultValue="https://velscor.com/assets/icon-64.png"/>
+          <bt:Image id="icon_32_2" DefaultValue="https://velscor.com/assets/icon-64.png"/>
+          <bt:Image id="icon_32_3" DefaultValue="https://velscor.com/assets/icon-128.png"/>
+          <bt:Image id="icon_48_1" DefaultValue="https://velscor.com/assets/icon-64.png"/>
+          <bt:Image id="icon_48_2" DefaultValue="https://velscor.com/assets/icon-128.png"/>
+          <bt:Image id="icon_48_3" DefaultValue="https://velscor.com/assets/icon-128.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="messageReadTaskPaneUrl" DefaultValue="https://www.velscor.com/taskpane.html"/>
+          <bt:Url id="messageReadTaskPaneUrl" DefaultValue="https://velscor.com/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="Velscor"/>

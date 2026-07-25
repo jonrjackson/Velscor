@@ -71,11 +71,11 @@ export default async function CheckoutSuccessPage({
       </a>
 
       <p style={{ color: "var(--fg-muted)", fontSize: 14 }}>
-        Sign in at{" "}
-        <a href="https://app.velscor.com/sign-in" style={{ color: "var(--accent)" }}>
+        Create your account at{" "}
+        <a href="https://app.velscor.com/sign-up" style={{ color: "var(--accent)" }}>
           app.velscor.com
         </a>{" "}
-        with the same email to manage your license and billing going forward.
+        using this same email ({email || "the one you checked out with"}) to manage your license and billing going forward.
       </p>
     </section>
   );

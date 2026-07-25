@@ -85,8 +85,8 @@ export default function InstallGuide({ initialTab }: { initialTab: "individual" 
             <Step n={6} title="Enter your license key">
               The first time, you&rsquo;ll be asked for your license key &mdash; it&rsquo;s on the page you
               landed on right after checkout, and also in your{" "}
-              <a href="https://app.velscor.com/sign-in" style={{ color: "var(--accent)" }}>account portal</a>.
-              After that, Velscor just works.
+              <a href="https://app.velscor.com/sign-up" style={{ color: "var(--accent)" }}>account portal</a>{" "}
+              (create an account with the same email you checked out with). After that, Velscor just works.
             </Step>
           </ol>
 

@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { resolveRole } from "../../../../../lib/auth";
 import {
   lookupLicense, updateLicense, deactivateLicense, deleteLicense, rotateKey, getSeatUsage, ActionError,
@@ -17,7 +18,8 @@ async function deactivateAction(key: string, _prevState: FormActionState): Promi
     if (err instanceof ActionError) return { error: err.message };
     throw err;
   }
-  redirect(`/admin/licenses/${encodeURIComponent(key)}`);
+  revalidatePath(`/admin/licenses/${encodeURIComponent(key)}`);
+  return { error: null };
 }
 
 async function reactivateAction(key: string, _prevState: FormActionState): Promise<FormActionState> {
@@ -30,7 +32,8 @@ async function reactivateAction(key: string, _prevState: FormActionState): Promi
     if (err instanceof ActionError) return { error: err.message };
     throw err;
   }
-  redirect(`/admin/licenses/${encodeURIComponent(key)}`);
+  revalidatePath(`/admin/licenses/${encodeURIComponent(key)}`);
+  return { error: null };
 }
 
 async function deleteAction(key: string, _prevState: FormActionState): Promise<FormActionState> {

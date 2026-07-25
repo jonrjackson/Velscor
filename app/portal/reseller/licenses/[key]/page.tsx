@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { resolveRole } from "../../../../../lib/auth";
 import { listLicenses, updateLicense } from "../../../../../lib/reseller-actions";
 import { ActionError } from "../../../../../lib/admin-actions";
@@ -22,7 +23,8 @@ async function updateLicenseAction(
     if (err instanceof ActionError) return { error: err.message };
     throw err;
   }
-  redirect(`/reseller/licenses/${encodeURIComponent(key)}`);
+  revalidatePath(`/reseller/licenses/${encodeURIComponent(key)}`);
+  return { error: null };
 }
 
 export default async function ResellerLicenseDetailPage({ params }: { params: { key: string } }) {

@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { resolveRole } from "../../../../../lib/auth";
 import { listResellers, updateReseller, deactivateReseller, ActionError } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
@@ -17,7 +18,8 @@ async function updateResellerAction(resellerKey: string, _prevState: FormActionS
     if (err instanceof ActionError) return { error: err.message };
     throw err;
   }
-  redirect(`/admin/resellers/${encodeURIComponent(resellerKey)}`);
+  revalidatePath(`/admin/resellers/${encodeURIComponent(resellerKey)}`);
+  return { error: null };
 }
 
 async function toggleActiveAction(resellerKey: string, active: boolean, _prevState: FormActionState): Promise<FormActionState> {
@@ -34,7 +36,8 @@ async function toggleActiveAction(resellerKey: string, active: boolean, _prevSta
     if (err instanceof ActionError) return { error: err.message };
     throw err;
   }
-  redirect(`/admin/resellers/${encodeURIComponent(resellerKey)}`);
+  revalidatePath(`/admin/resellers/${encodeURIComponent(resellerKey)}`);
+  return { error: null };
 }
 
 export default async function AdminResellerDetailPage({ params }: { params: { resellerKey: string } }) {

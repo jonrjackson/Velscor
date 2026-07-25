@@ -62,6 +62,14 @@ export default async function CheckoutSuccessPage({
         </div>
       )}
 
+      <a
+        href={`/install?tier=${scope === "user" ? "user" : "org"}`}
+        className="btn btn-primary"
+        style={{ marginBottom: 24, justifyContent: "center" }}
+      >
+        Add Velscor to Outlook &rarr;
+      </a>
+
       <p style={{ color: "var(--fg-muted)", fontSize: 14 }}>
         Sign in at{" "}
         <a href="https://app.velscor.com/sign-in" style={{ color: "var(--accent)" }}>

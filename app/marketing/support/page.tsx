@@ -6,10 +6,15 @@ export default function SupportPage() {
         Need help with Velscor, your license, or the Outlook add-in? Reach out and we&rsquo;ll
         get back to you.
       </p>
-      {/* TODO(v2): replace with a velscor.com support address once email hosting is set up */}
-      <a href="mailto:jon@jonandtrace.com" className="btn btn-primary">
-        Email support
-      </a>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <a href="/install" className="btn btn-secondary">
+          How to add Velscor to Outlook
+        </a>
+        {/* TODO(v2): replace with a velscor.com support address once email hosting is set up */}
+        <a href="mailto:jon@jonandtrace.com" className="btn btn-primary">
+          Email support
+        </a>
+      </div>
     </section>
   );
 }

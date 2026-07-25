@@ -39,7 +39,12 @@ export default async function CustomerHome() {
 
   return (
     <>
-      <h1 style={{ fontSize: 26, marginBottom: 24 }}>My license{licensesWithSeats.length > 1 ? "s" : ""}</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <h1 style={{ fontSize: 26, margin: 0 }}>My license{licensesWithSeats.length > 1 ? "s" : ""}</h1>
+        <a href="https://velscor.com/install" style={{ color: "var(--accent)", fontSize: 14, textDecoration: "none" }}>
+          How to add Velscor to Outlook &rarr;
+        </a>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {licensesWithSeats.map((l) => {
           const status = l.active === false ? "deactivated" : l.expiresAt && new Date(l.expiresAt) < new Date() ? "expired" : "active";

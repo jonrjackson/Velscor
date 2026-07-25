@@ -31,7 +31,7 @@ export default async function AdminResellersPage() {
                   <td style={td}>{r.name}</td>
                   <td style={td}>{r.email}</td>
                   <td style={td}>{r.discountPct}%</td>
-                  <td style={td}>{r.active ? "active" : "deactivated"}</td>
+                  <td style={td}>{r.active !== false ? "active" : "deactivated"}</td>
                   <td style={td}>
                     <Link href={`/admin/resellers/${encodeURIComponent(r.resellerKey)}`} style={{ color: "var(--accent)" }}>
                       Manage

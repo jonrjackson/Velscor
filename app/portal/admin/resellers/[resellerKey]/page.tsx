@@ -58,7 +58,7 @@ export default async function AdminResellerDetailPage({ params }: { params: { re
       />
 
       <div style={{ marginTop: 24 }}>
-        {reseller.active ? (
+        {reseller.active !== false ? (
           <ConfirmForm action={toggleActiveAction.bind(null, resellerKey, false)} label="Deactivate" danger />
         ) : (
           <ConfirmForm action={toggleActiveAction.bind(null, resellerKey, true)} label="Reactivate" variant="primary" />

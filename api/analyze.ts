@@ -60,12 +60,14 @@ Important context to apply:
 - Transactional emails (invoices, payment receipts, shipping notifications) from domains matching the sender's company name are normal business email — generic greetings like "Valued Customer" are common and not a red flag on their own.
 - A physical address, phone number, and matching sender domain together are strong legitimacy signals.
 - Business acquisitions and account transfers (e.g. "transferred from Company X") are normal and not indicators of spoofing.
-- Weigh ALL available signals together. A single surface-level pattern match is not enough for SUSPICIOUS — require multiple concrete concerns.
+- Short, low-content emails (a one-line reply, a "test" email, a quick internal note) are extremely common in normal business use and are NOT suspicious on their own — do not flag brevity or a generic subject like "test" unless the email also asks for credentials, money, or contains links/QR codes/attachments.
+- A sender's signature or contact block mentioning a second company/brand domain (rebrands, sister companies, consultants working under multiple entities) is common and weak on its own — only treat it as meaningful if it's paired with an actual authentication failure or Return-Path/From mismatch.
+- Weigh ALL available signals together. Multiple WEAK signals (see below) should not be added up into a SUSPICIOUS verdict — SUSPICIOUS requires at least one STRONG signal, or a genuinely coherent pattern (e.g. urgency + credential request + link).
 
-Spoofing and authentication signals (treat these as strong indicators):
-- If Return-Path domain differs from the From domain, this is a strong spoofing indicator — flag it.
-- If authentication results show SPF fail, DKIM fail, or DMARC fail, this is a strong spoofing indicator — flag it.
-- "dmarc=fail", "spf=fail", "dkim=fail" in the authentication results mean the email did not come from where it claims.
+Spoofing and authentication signals — distinguish STRONG (actual failure) from WEAK (no data):
+- STRONG: authentication results explicitly showing "spf=fail", "dkim=fail", or "dmarc=fail" mean the email did not come from where it claims — flag it as a strong spoofing indicator.
+- STRONG: Return-Path domain differing from the From domain.
+- WEAK, NOT a red flag on its own: authentication results being absent, unavailable, or simply not showing a pass/fail (e.g. "(not available)", no DKIM header present at all). Most legitimate small businesses and individuals send mail without DKIM/DMARC configured — treat missing authentication data as inconclusive, not as evidence of spoofing, unless combined with a genuine STRONG signal above.
 
 QR code phishing (a rapidly growing attack vector):
 - If the email body mentions scanning a QR code, contains little readable text, or appears to be primarily an image, treat this as HIGH suspicion especially if the subject references documents, signatures, invoices, or HR notices.
@@ -77,7 +79,7 @@ Consider: sender domain legitimacy, Return-Path/From mismatch, SPF/DKIM/DMARC re
 
   try {
     const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-haiku-4-5",
       max_tokens: 400,
       messages: [{ role: "user", content: prompt }],
     });

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type Stripe from "stripe";
 import { Redis } from "@upstash/redis";
 import { getStripe } from "../lib/stripe";
+import { getResend } from "../lib/resend";
 import { createLicense, deactivateLicense, ActionError } from "../lib/admin-actions";
 import { TIERS } from "../lib/license";
 
@@ -59,6 +60,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, db: Red
 
   const result = (await createLicense(body, db)) as { key: string };
   await db.set(`stripe_subscription:${subscriptionId}`, result.key);
+
+  if (scope === "user") {
+    try {
+      await getResend().emails.send({
+        from: "Velscor <noreply@velscor.com>",
+        to: email,
+        subject: "Your Velscor license key",
+        text: `Thanks for subscribing to Velscor Individual.\n\nYour license key: ${result.key}\n\nAdd Velscor to Outlook: https://velscor.com/install?tier=user\n\nManage your license and billing anytime at https://app.velscor.com (sign up with this same email).\n\n— Velscor`,
+      });
+    } catch (err) {
+      console.error("Failed to email license key:", err);
+    }
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription, db: Redis) {

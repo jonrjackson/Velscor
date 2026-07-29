@@ -13,8 +13,7 @@ export default function CTA() {
         <p style={{ color: "var(--fg-muted)", margin: "0 0 24px" }}>
           Reach out and we&rsquo;ll get you set up with a trial license.
         </p>
-        {/* TODO(v2): replace with a velscor.com support address once email hosting is set up */}
-        <a href="mailto:jon@jonandtrace.com" className="btn btn-primary">
+        <a href="/support" className="btn btn-primary">
           Get in touch
         </a>
       </div>

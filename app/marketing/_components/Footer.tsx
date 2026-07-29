@@ -19,10 +19,6 @@ export default function Footer() {
           <a href="/support" style={{ textDecoration: "none" }}>
             Support
           </a>
-          {/* TODO(v2): replace with a velscor.com support address once email hosting is set up */}
-          <a href="mailto:jon@jonandtrace.com" style={{ textDecoration: "none" }}>
-            Contact
-          </a>
         </div>
       </div>
     </footer>

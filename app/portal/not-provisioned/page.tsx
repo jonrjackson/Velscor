@@ -9,7 +9,7 @@ export default function NotProvisionedPage() {
         believe this is a mistake.
       </p>
       <div style={{ display: "flex", justifyContent: "center", gap: 16, alignItems: "center" }}>
-        <a href="mailto:jon@jonandtrace.com" className="btn btn-primary">
+        <a href="https://velscor.com/support" className="btn btn-primary">
           Contact support
         </a>
         <UserButton />

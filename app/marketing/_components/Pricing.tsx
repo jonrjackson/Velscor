@@ -45,7 +45,7 @@ export default function Pricing() {
             {tier.priceMonthly != null ? (
               <CheckoutButton action={startCheckout.bind(null, key)} label="Get started" />
             ) : (
-              <a href="mailto:jon@jonandtrace.com" className="btn btn-secondary" style={{ justifyContent: "center" }}>
+              <a href="/support" className="btn btn-secondary" style={{ justifyContent: "center" }}>
                 Contact sales
               </a>
             )}

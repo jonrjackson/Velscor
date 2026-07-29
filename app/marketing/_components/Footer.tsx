@@ -19,6 +19,9 @@ export default function Footer() {
           <a href="/support" style={{ textDecoration: "none" }}>
             Support
           </a>
+          <a href="/terms" style={{ textDecoration: "none" }}>
+            Terms
+          </a>
         </div>
       </div>
     </footer>

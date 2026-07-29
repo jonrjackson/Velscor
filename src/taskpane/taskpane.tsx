@@ -602,6 +602,11 @@ function App() {
               </button>
             </div>
           )}
+
+          <div style={{ fontSize: "11px", color: "#9ca3af", textAlign: "center", lineHeight: "1.5" }}>
+            Velscor is a decision aid, not a guarantee. Always use your own judgment before opening
+            emails, attachments, or links.
+          </div>
         </div>
       )}
 

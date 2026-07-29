@@ -15,6 +15,14 @@ interface EmailAttachment {
   name: string;
 }
 
+interface EmailContext {
+  sender?: string;
+  senderEmail?: string;
+  subject?: string;
+  authResults?: string;
+  body?: string;
+}
+
 type LicenseStatus = "checking" | "unlicensed" | "licensed";
 
 const VERDICT_STYLES = {
@@ -134,6 +142,15 @@ function App() {
   const [error, setError]                 = React.useState<string | null>(null);
   const [analyzedLabel, setAnalyzedLabel] = React.useState("This email");
   const [attachments, setAttachments]     = React.useState<EmailAttachment[]>([]);
+  const [lastEmailContext, setLastEmailContext] = React.useState<EmailContext | null>(null);
+
+  // "Report this verdict" state
+  const [reportOpen, setReportOpen]           = React.useState(false);
+  const [reportVerdict, setReportVerdict]     = React.useState<"SAFE" | "SUSPICIOUS" | "SPAM">("SAFE");
+  const [reportNote, setReportNote]           = React.useState("");
+  const [reportSubmitting, setReportSubmitting] = React.useState(false);
+  const [reportSubmitted, setReportSubmitted] = React.useState(false);
+  const [reportError, setReportError]         = React.useState<string | null>(null);
 
   const hasAnalyzed    = React.useRef(false);
   const analyzeEmailRef = React.useRef<() => Promise<void>>(async () => {});
@@ -253,11 +270,47 @@ function App() {
     return response.json();
   };
 
+  const submitCorrectionReport = async () => {
+    if (!result || !lastEmailContext) return;
+    setReportSubmitting(true);
+    setReportError(null);
+    try {
+      const response = await fetch("/api/report-correction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(autoProvisioned ? { autoLicensedEmail: userEmail } : { licenseKey, userEmail }),
+          senderDisplay: lastEmailContext.sender,
+          senderEmail: lastEmailContext.senderEmail,
+          subject: lastEmailContext.subject,
+          authResults: lastEmailContext.authResults,
+          bodyExcerpt: (lastEmailContext.body || "").slice(0, 500),
+          originalVerdict: result.verdict,
+          correctedVerdict: reportVerdict,
+          reporterNote: reportNote,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Couldn't submit report");
+      }
+      setReportSubmitted(true);
+      setReportOpen(false);
+    } catch (err: any) {
+      setReportError(err.message || "Couldn't submit report. Please try again.");
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
   const analyzeEmail = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
     setAnalyzedLabel("This email");
+    setReportOpen(false);
+    setReportSubmitted(false);
+    setReportError(null);
 
     try {
       const item = (Office as any).context.mailbox.item;
@@ -305,6 +358,7 @@ function App() {
       const returnPath = rpMatch ? rpMatch[1] : rp.trim();
       const authResults = parsedHeaders["authentication-results"] || parsedHeaders["arc-authentication-results"] || "";
 
+      setLastEmailContext({ sender, senderEmail, subject, authResults, body });
       setResult(await callApi({ subject, body, sender, senderEmail, replyTo, returnPath, authResults }));
     } catch (err: any) {
       setError(err.message || "Analysis failed. Please try again.");
@@ -318,6 +372,9 @@ function App() {
     setError(null);
     setResult(null);
     setAnalyzedLabel(`Attached: "${att.name}"`);
+    setReportOpen(false);
+    setReportSubmitted(false);
+    setReportError(null);
 
     try {
       const item = (Office as any).context.mailbox.item;
@@ -339,6 +396,7 @@ function App() {
         throw new Error("Could not parse attached email content");
       }
 
+      setLastEmailContext({ sender: parsed.sender, senderEmail: parsed.senderEmail, subject: parsed.subject, authResults: parsed.authResults, body: parsed.body });
       setResult(await callApi(parsed));
     } catch (err: any) {
       setError(err.message || "Could not analyze attached email.");
@@ -485,6 +543,63 @@ function App() {
           ) : (
             <div style={{ fontSize: "13px", color: "#6b7280", textAlign: "center", marginBottom: "16px" }}>
               No specific red flags detected.
+            </div>
+          )}
+
+          {/* Report this verdict */}
+          {reportSubmitted ? (
+            <div style={{ fontSize: "12px", color: "#107c10", textAlign: "center", marginBottom: "16px" }}>
+              ✓ Thanks — sent for review.
+            </div>
+          ) : reportOpen ? (
+            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+              <div style={{ fontWeight: 600, fontSize: "12px", color: "#374151", marginBottom: "8px" }}>
+                What should the verdict have been?
+              </div>
+              <select
+                value={reportVerdict}
+                onChange={(e) => setReportVerdict(e.target.value as any)}
+                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "13px", marginBottom: "8px", fontFamily: "Segoe UI, sans-serif" }}
+              >
+                <option value="SAFE">Safe</option>
+                <option value="SUSPICIOUS">Suspicious</option>
+                <option value="SPAM">Spam / Phishing</option>
+              </select>
+              <textarea
+                value={reportNote}
+                onChange={(e) => setReportNote(e.target.value)}
+                placeholder="Optional: why? (helps us fix it faster)"
+                rows={2}
+                style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #d1d5db", fontSize: "13px", marginBottom: "8px", fontFamily: "Segoe UI, sans-serif", resize: "vertical", boxSizing: "border-box" }}
+              />
+              {reportError && (
+                <div style={{ fontSize: "12px", color: "#b91c1c", marginBottom: "8px" }}>{reportError}</div>
+              )}
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={submitCorrectionReport}
+                  disabled={reportSubmitting}
+                  style={{ flex: 1, padding: "8px", background: "#0078d4", color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", cursor: reportSubmitting ? "default" : "pointer", opacity: reportSubmitting ? 0.6 : 1, fontFamily: "Segoe UI, sans-serif" }}
+                >
+                  {reportSubmitting ? "Sending…" : "Submit"}
+                </button>
+                <button
+                  onClick={() => setReportOpen(false)}
+                  disabled={reportSubmitting}
+                  style={{ padding: "8px 12px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: "6px", fontSize: "13px", cursor: "pointer", fontFamily: "Segoe UI, sans-serif" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
+              <button
+                onClick={() => { setReportOpen(true); setReportVerdict(result.verdict === "SAFE" ? "SUSPICIOUS" : "SAFE"); }}
+                style={{ background: "none", border: "none", color: "#6b7280", fontSize: "12px", textDecoration: "underline", cursor: "pointer", fontFamily: "Segoe UI, sans-serif" }}
+              >
+                Think this verdict is wrong? Report it
+              </button>
             </div>
           )}
         </div>

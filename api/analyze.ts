@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
 import { validateLicense, validateByEmail } from "../lib/license";
+import { getRelevantCorrections, formatCorrectionsForPrompt } from "../lib/corrections";
+import { getRedis } from "../lib/reseller";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -22,6 +24,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!body && !subject) {
     return res.status(400).json({ error: "Email content required" });
   }
+
+  const corrections = await getRelevantCorrections(getRedis(), { sender, senderEmail, subject, authResults, body });
+  const correctionsBlock = formatCorrectionsForPrompt(corrections);
 
   const prompt = `You are an email security analyst. Analyze the following email for spam, phishing, or scam indicators. Your goal is accurate verdicts — avoid both false positives on legitimate business email and false negatives on real threats.
 
@@ -79,7 +84,7 @@ QR code phishing (a rapidly growing attack vector):
 - AWS S3-hosted URLs (s3.amazonaws.com, s3.[region].amazonaws.com) used as destinations for document signing or login pages are phishing indicators — legitimate companies do not host their sign-in or document pages on S3 buckets.
 - Similarly, any URL that uses a consumer cloud storage service (Google Drive, Dropbox, OneDrive) as a login or document-signing destination is suspicious.
 
-Consider: sender domain legitimacy, Return-Path/From mismatch, SPF/DKIM/DMARC results, urgency or pressure tactics, requests for credentials or money, suspicious links, QR code presence, grammar/spelling issues, mismatched reply-to, spoofed display names.`;
+Consider: sender domain legitimacy, Return-Path/From mismatch, SPF/DKIM/DMARC results, urgency or pressure tactics, requests for credentials or money, suspicious links, QR code presence, grammar/spelling issues, mismatched reply-to, spoofed display names.${correctionsBlock}`;
 
   try {
     const message = await client.messages.create({

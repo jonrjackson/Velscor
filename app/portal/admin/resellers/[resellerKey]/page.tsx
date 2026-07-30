@@ -30,7 +30,7 @@ async function toggleActiveAction(resellerKey: string, active: boolean, _prevSta
     if (active) {
       await updateReseller({ resellerKey, active: true }, getRedis());
     } else {
-      await deactivateReseller({ resellerKey, cascade: false }, getRedis());
+      await deactivateReseller({ resellerKey, cascade: true }, getRedis());
     }
   } catch (err) {
     if (err instanceof ActionError) return { error: err.message };

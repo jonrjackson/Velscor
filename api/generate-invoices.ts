@@ -71,6 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       collection_method: "send_invoice",
       days_until_due: 14,
       auto_advance: true,
+      pending_invoice_items_behavior: "include",
       metadata: { resellerKey },
     });
 

@@ -262,6 +262,25 @@ export async function deactivateReseller(body: any, db: Redis) {
   return { resellerKey: rKey, status: "deactivated", cascade, deactivatedLicenses: deactivated };
 }
 
+export async function reactivateReseller(body: any, db: Redis) {
+  const rKey    = String(body.resellerKey || "").trim();
+  const cascade = body.cascade === true || body.cascade === "true";
+  if (!rKey) throw new ActionError(400, "resellerKey is required");
+  const reseller = await db.get<ResellerRecord>(`reseller:${rKey}`);
+  if (!reseller) throw new ActionError(404, "Reseller not found");
+  await db.set(`reseller:${rKey}`, { ...reseller, active: true });
+
+  let reactivated = 0;
+  if (cascade) {
+    const licKeys: string[] = await db.smembers(`reseller_licenses:${rKey}`);
+    await Promise.all(licKeys.map(async (key) => {
+      const r = await db.get<LicenseRecord>(`license:${key}`);
+      if (r && r.active === false) { await db.set(`license:${key}`, { ...r, active: true }); reactivated++; }
+    }));
+  }
+  return { resellerKey: rKey, status: "reactivated", cascade, reactivatedLicenses: reactivated };
+}
+
 // ── New: list resellers (didn't exist as an admin action before) ────────────
 
 export async function listResellers(db: Redis) {

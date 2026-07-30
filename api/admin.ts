@@ -4,7 +4,7 @@ import {
   ActionError,
   createLicense, updateLicense, deactivateLicense, deleteLicense, rotateKey,
   listLicenses, lookupLicense, billingReport,
-  createReseller, updateReseller, deactivateReseller, listResellers,
+  createReseller, updateReseller, deactivateReseller, reactivateReseller, listResellers,
 } from "../lib/admin-actions";
 
 function checkAuth(req: VercelRequest): boolean {
@@ -29,6 +29,7 @@ const ACTIONS: Record<string, (body: any, db: Redis) => Promise<unknown>> = {
   "create-reseller":     createReseller,
   "update-reseller":     updateReseller,
   "deactivate-reseller": deactivateReseller,
+  "reactivate-reseller": reactivateReseller,
   "list-resellers":      (_body, db) => listResellers(db),
 };
 

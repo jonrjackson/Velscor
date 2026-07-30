@@ -1,10 +1,11 @@
 import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { resolveRole } from "../../../../../lib/auth";
-import { listResellers, updateReseller, deactivateReseller, ActionError } from "../../../../../lib/admin-actions";
+import { listResellers, updateReseller, deactivateReseller, reactivateReseller, ActionError } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
 import ResellerForm from "../../../_components/ResellerForm";
 import ConfirmForm from "../../../_components/ConfirmForm";
+import ReactivateResellerForm from "../../../_components/ReactivateResellerForm";
 import type { FormActionState } from "../../../_components/formActionState";
 
 async function updateResellerAction(resellerKey: string, _prevState: FormActionState, formData: FormData): Promise<FormActionState> {
@@ -22,16 +23,27 @@ async function updateResellerAction(resellerKey: string, _prevState: FormActionS
   return { error: null };
 }
 
-async function toggleActiveAction(resellerKey: string, active: boolean, _prevState: FormActionState): Promise<FormActionState> {
+async function deactivateAction(resellerKey: string, _prevState: FormActionState): Promise<FormActionState> {
   "use server";
   const resolved = await resolveRole();
   if (resolved.role !== "admin") return { error: "Unauthorized" };
   try {
-    if (active) {
-      await updateReseller({ resellerKey, active: true }, getRedis());
-    } else {
-      await deactivateReseller({ resellerKey, cascade: true }, getRedis());
-    }
+    await deactivateReseller({ resellerKey, cascade: true }, getRedis());
+  } catch (err) {
+    if (err instanceof ActionError) return { error: err.message };
+    throw err;
+  }
+  revalidatePath(`/admin/resellers/${encodeURIComponent(resellerKey)}`);
+  return { error: null };
+}
+
+async function reactivateAction(resellerKey: string, _prevState: FormActionState, formData: FormData): Promise<FormActionState> {
+  "use server";
+  const resolved = await resolveRole();
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
+  const cascade = formData.get("cascade") === "true";
+  try {
+    await reactivateReseller({ resellerKey, cascade }, getRedis());
   } catch (err) {
     if (err instanceof ActionError) return { error: err.message };
     throw err;
@@ -62,9 +74,9 @@ export default async function AdminResellerDetailPage({ params }: { params: { re
 
       <div style={{ marginTop: 24 }}>
         {reseller.active !== false ? (
-          <ConfirmForm action={toggleActiveAction.bind(null, resellerKey, false)} label="Deactivate" danger />
+          <ConfirmForm action={deactivateAction.bind(null, resellerKey)} label="Deactivate" danger />
         ) : (
-          <ConfirmForm action={toggleActiveAction.bind(null, resellerKey, true)} label="Reactivate" variant="primary" />
+          <ReactivateResellerForm action={reactivateAction.bind(null, resellerKey)} />
         )}
       </div>
     </>

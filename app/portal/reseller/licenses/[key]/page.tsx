@@ -41,10 +41,17 @@ export default async function ResellerLicenseDetailPage({ params }: { params: { 
   return (
     <>
       <h1 style={{ fontSize: 24, marginBottom: 4, fontFamily: "monospace" }}>{key}</h1>
-      <p style={{ color: "var(--fg-muted)", marginBottom: 24 }}>
+      <p style={{ color: "var(--fg-muted)", marginBottom: 12 }}>
         {license.type} &middot; {license.scope} &middot; {license.status}
         {license.daysRemaining != null ? ` · ${license.daysRemaining} days remaining` : ""}
       </p>
+
+      <a
+        href={`https://velscor.com/install?tier=${license.scope === "user" ? "user" : "org"}`}
+        style={{ color: "var(--accent)", fontSize: 14, textDecoration: "none", display: "inline-block", marginBottom: 24 }}
+      >
+        How to add Velscor to Outlook &rarr;
+      </a>
 
       <ResellerLicenseEditForm
         action={boundAction}

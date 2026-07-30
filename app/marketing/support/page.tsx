@@ -9,12 +9,6 @@ export default function SupportPage() {
         we&rsquo;ll get back to you.
       </p>
 
-      <div style={{ marginBottom: 24 }}>
-        <a href="/install" className="btn btn-secondary">
-          How to add Velscor to Outlook
-        </a>
-      </div>
-
       <ContactForm />
     </section>
   );

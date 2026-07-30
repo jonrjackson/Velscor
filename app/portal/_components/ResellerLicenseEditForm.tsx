@@ -6,9 +6,11 @@ import type { FormActionState } from "./formActionState";
 export default function ResellerLicenseEditForm({
   action,
   defaultValues,
+  scope,
 }: {
   action: (prevState: FormActionState, formData: FormData) => Promise<FormActionState>;
-  defaultValues: { label?: string; contactEmail?: string; expiresAt: string | null };
+  defaultValues: { label?: string; contactEmail?: string; expiresAt: string | null; maxUsers?: number };
+  scope: string;
 }) {
   const [state, formAction] = useFormState(action, { error: null });
 
@@ -22,6 +24,11 @@ export default function ResellerLicenseEditForm({
       <Field label="Contact email">
         <input name="contactEmail" type="email" defaultValue={defaultValues.contactEmail} style={inputStyle} />
       </Field>
+      {scope === "org" && (
+        <Field label="Max users (0 = unlimited)">
+          <input name="maxUsers" type="number" min={0} defaultValue={defaultValues.maxUsers ?? 0} style={inputStyle} />
+        </Field>
+      )}
       <Field label="Expires (leave blank for never)">
         <input
           name="expiresAt"

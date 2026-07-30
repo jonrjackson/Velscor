@@ -24,14 +24,14 @@ async function resolveReseller(clerkUserId: string, email: string, db: Redis): P
   const mappedKey = await db.get<string>(`reseller_by_clerk:${clerkUserId}`);
   if (mappedKey) {
     const record = await db.get<ResellerRecord>(`reseller:${mappedKey}`);
-    if (record && record.active) return { ...record, resellerKey: mappedKey };
+    if (record && record.active !== false) return { ...record, resellerKey: mappedKey };
   }
 
   // Fallback: scan resellers for a case-insensitive email match, then persist the mapping.
   const keys: string[] = await db.smembers("all_resellers");
   for (const key of keys) {
     const record = await db.get<ResellerRecord>(`reseller:${key}`);
-    if (record && record.active && record.email.toLowerCase().trim() === email) {
+    if (record && record.active !== false && record.email.toLowerCase().trim() === email) {
       await db.set(`reseller_by_clerk:${clerkUserId}`, key);
       await db.set(`reseller:${key}`, { ...record, clerkUserId });
       return { ...record, clerkUserId, resellerKey: key };

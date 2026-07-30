@@ -59,21 +59,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const discountPct = reseller.discountPct || 0;
     const amountCents = Math.round(seats * RESELLER_PRICE_PER_SEAT * 100 * (1 - discountPct / 100));
 
+    // Create the invoice first (draft, not auto-advanced), then attach the
+    // line item directly to its id — avoids Stripe's "pending invoice item"
+    // pool entirely, so there's no risk of a stray item from a prior/failed
+    // run getting swept into a later invoice and double-billing a reseller.
+    const invoice = await stripe.invoices.create({
+      customer: stripeCustomerId,
+      collection_method: "send_invoice",
+      days_until_due: 14,
+      auto_advance: false,
+      metadata: { resellerKey },
+    });
+
     await stripe.invoiceItems.create({
       customer: stripeCustomerId,
+      invoice: invoice.id,
       amount: amountCents,
       currency: "usd",
       description: `Velscor reseller licenses — ${seats} seat${seats === 1 ? "" : "s"}${discountPct ? ` (${discountPct}% discount applied)` : ""}`,
     });
 
-    const invoice = await stripe.invoices.create({
-      customer: stripeCustomerId,
-      collection_method: "send_invoice",
-      days_until_due: 14,
-      auto_advance: true,
-      pending_invoice_items_behavior: "include",
-      metadata: { resellerKey },
-    });
+    await stripe.invoices.finalizeInvoice(invoice.id);
+    await stripe.invoices.sendInvoice(invoice.id);
 
     results.push({ resellerKey, seats, invoiceId: invoice.id });
   }

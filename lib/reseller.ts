@@ -9,6 +9,7 @@ export interface ResellerRecord {
   maxLicenses?: number; // 0 = unlimited
   notes?: string;
   clerkUserId?: string; // set once the reseller has logged into the management portal
+  stripeCustomerId?: string; // set on first invoice generation
 }
 
 export interface ResellerValidation {

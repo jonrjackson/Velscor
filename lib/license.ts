@@ -11,6 +11,11 @@ export const TIERS: Record<string, { maxUsers: number; label: string; priceMonth
   enterprise: { maxUsers: 0,   label: "Enterprise (unlimited)",     priceNote: "Contact us" },
 };
 
+// Flat wholesale rate resellers pay per seat per month, regardless of which
+// tier label a license was created under (the tier dropdown only presets
+// maxUsers for resellers now — it no longer drives price).
+export const RESELLER_PRICE_PER_SEAT = 1.25;
+
 export interface LicenseRecord {
   type: "permanent" | "trial" | "paid";
   scope: "user" | "org";

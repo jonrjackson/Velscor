@@ -1,4 +1,7 @@
 {
   "buildCommand": "npm run build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "crons": [
+    { "path": "/api/generate-invoices", "schedule": "0 6 1 * *" }
+  ]
 }

@@ -214,7 +214,7 @@ export async function billingReport(db: Redis) {
 export async function createReseller(body: any, db: Redis) {
   const name        = String(body.name        || "").trim();
   const email       = String(body.email       || "").trim();
-  const discountPct = Number(body.discountPct ?? 35);
+  const discountPct = Number(body.discountPct ?? 0);
   const maxLicenses = Number(body.maxLicenses ?? 0);
   const notes       = String(body.notes       || "");
   if (!name)  throw new ActionError(400, "name is required");

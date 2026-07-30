@@ -5,6 +5,7 @@ import { getStripe } from "../lib/stripe";
 import { getResend } from "../lib/resend";
 import { createLicense, deactivateLicense, ActionError } from "../lib/admin-actions";
 import { TIERS } from "../lib/license";
+import type { LicenseRecord } from "../lib/license";
 
 // Stripe requires the raw request body for signature verification —
 // @vercel/node auto-parses JSON by default, so that must be disabled here.
@@ -80,6 +81,23 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, db: 
   if (key) await deactivateLicense({ key }, db);
 }
 
+// Renews every currently-paid license a reseller owns by one billing cycle.
+// Only reseller-billing invoices carry a resellerKey in metadata, so direct-
+// customer invoices (subscriptions) pass through untouched.
+async function handleResellerInvoicePaid(invoice: Stripe.Invoice, db: Redis) {
+  const resellerKey = invoice.metadata?.resellerKey;
+  if (!resellerKey) return;
+
+  const licenseKeys: string[] = await db.smembers(`reseller_licenses:${resellerKey}`);
+  const renewedThrough = new Date(Date.now() + 35 * 86_400_000).toISOString();
+
+  await Promise.all(licenseKeys.map(async (key) => {
+    const record = await db.get<LicenseRecord>(`license:${key}`);
+    if (!record || record.type !== "paid" || record.active === false) return;
+    await db.set(`license:${key}`, { ...record, expiresAt: renewedThrough });
+  }));
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -106,6 +124,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       case "customer.subscription.deleted":
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, db);
+        break;
+      case "invoice.paid":
+        await handleResellerInvoicePaid(event.data.object as Stripe.Invoice, db);
         break;
       // Logged only for v1 — Stripe's own retry/dunning handles payment
       // failures, and full cancellation fires subscription.deleted (above).

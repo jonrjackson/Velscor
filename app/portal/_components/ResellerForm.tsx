@@ -25,7 +25,7 @@ export default function ResellerForm({
         <input name="email" type="email" defaultValue={defaultValues?.email} required style={inputStyle} />
       </Field>
       <Field label="Discount %">
-        <input name="discountPct" type="number" defaultValue={defaultValues?.discountPct ?? 35} style={inputStyle} />
+        <input name="discountPct" type="number" defaultValue={defaultValues?.discountPct ?? 0} style={inputStyle} />
       </Field>
       <Field label="Max licenses (0 = unlimited)">
         <input name="maxLicenses" type="number" defaultValue={defaultValues?.maxLicenses ?? 0} style={inputStyle} />

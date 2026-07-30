@@ -38,7 +38,11 @@ export async function createLicense(body: any, resellerKey: string, resellerName
   const record: LicenseRecord = {
     type, scope,
     createdAt: now.toISOString(),
-    expiresAt: type === "trial" ? new Date(now.getTime() + trialDays * 86_400_000).toISOString() : null,
+    // "paid" licenses get a real expiry too — a 30-day billing cycle plus a
+    // 5-day grace period, so a freshly-created license works immediately.
+    // The invoice.paid webhook (api/webhooks.ts) pushes this forward on each
+    // successful payment; an unpaid invoice just lets it lapse naturally.
+    expiresAt: new Date(now.getTime() + (type === "trial" ? trialDays : 35) * 86_400_000).toISOString(),
     resellerId: resellerKey,
   };
   if (scope === "user") { record.allowedEmail   = allowedEmail.toLowerCase().trim(); }
@@ -91,7 +95,12 @@ export async function updateLicense(body: any, resellerKey: string, db: Redis) {
     const newType = String(body.type) as "trial" | "paid";
     if (!["trial", "paid"].includes(newType)) throw new ActionError(400, "type must be 'trial' or 'paid'");
     updated.type = newType;
-    if (newType === "paid") updated.expiresAt = null;
+    // Switching a trial to paid gives it the same grace window a freshly
+    // created paid license gets — it'll renew for real once an invoice is
+    // paid, rather than being wiped to "never expires".
+    if (newType === "paid" && (!existing.expiresAt || existing.type === "trial")) {
+      updated.expiresAt = new Date(Date.now() + 35 * 86_400_000).toISOString();
+    }
   }
   if (body.tier        !== undefined) { updated.tier = String(body.tier); if (body.maxUsers === undefined && TIERS[updated.tier]) updated.maxUsers = TIERS[updated.tier].maxUsers; }
   if (body.maxUsers    !== undefined) updated.maxUsers    = Number(body.maxUsers);

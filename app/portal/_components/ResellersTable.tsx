@@ -12,7 +12,7 @@ type Reseller = {
 };
 
 export default function ResellersTable({ resellers }: { resellers: Reseller[] }) {
-  const [hideDisabled, setHideDisabled] = useState(false);
+  const [hideDisabled, setHideDisabled] = useState(true);
   const visible = hideDisabled ? resellers.filter((r) => r.active !== false) : resellers;
 
   return (

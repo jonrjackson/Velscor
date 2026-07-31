@@ -11,14 +11,18 @@ interface LicenseRow {
   allowedDomains?: string[];
   maxUsers?: number;
   expiresAt: string | null;
+  resellerId?: string;
+  resellerName?: string;
 }
 
 export default function LicenseTable({
   licenses,
   editHrefBase,
+  showSource,
 }: {
   licenses: LicenseRow[];
   editHrefBase: string;
+  showSource?: boolean;
 }) {
   if (licenses.length === 0) {
     return <p style={{ color: "var(--fg-muted)" }}>No licenses yet.</p>;
@@ -35,6 +39,7 @@ export default function LicenseTable({
             <th style={th}>Scope</th>
             <th style={th}>Tier</th>
             <th style={th}>Assigned to</th>
+            {showSource && <th style={th}>Source</th>}
             <th style={th}>Expires</th>
             <th style={th}></th>
           </tr>
@@ -50,6 +55,11 @@ export default function LicenseTable({
               <td style={td}>{l.scope}</td>
               <td style={td}>{l.tier || "—"}</td>
               <td style={td}>{l.allowedEmail || (l.allowedDomains || []).join(", ") || "—"}</td>
+              {showSource && (
+                <td style={td}>
+                  {l.resellerId ? `Reseller: ${l.resellerName || l.resellerId}` : "Direct"}
+                </td>
+              )}
               <td style={td}>{l.expiresAt ? new Date(l.expiresAt).toLocaleDateString() : "Never"}</td>
               <td style={td}>
                 <Link href={`${editHrefBase}/${encodeURIComponent(l.key)}`} style={{ color: "var(--accent)" }}>

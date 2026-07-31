@@ -1,10 +1,17 @@
 import Link from "next/link";
-import { listLicenses } from "../../../../lib/admin-actions";
+import { listLicenses, listResellers } from "../../../../lib/admin-actions";
 import { getRedis } from "../../../../lib/reseller";
 import LicenseTable from "../../_components/LicenseTable";
 
 export default async function AdminLicensesPage() {
-  const { licenses } = await listLicenses(getRedis());
+  const db = getRedis();
+  const [{ licenses }, { resellers }] = await Promise.all([listLicenses(db), listResellers(db)]);
+
+  const resellerNames = new Map((resellers as any[]).map((r) => [r.resellerKey, r.name]));
+  const withSource = (licenses as any[]).map((l) => ({
+    ...l,
+    resellerName: l.resellerId ? resellerNames.get(l.resellerId) || l.resellerId : "",
+  }));
 
   return (
     <>
@@ -12,7 +19,7 @@ export default async function AdminLicensesPage() {
         <h1 style={{ fontSize: 26 }}>Licenses</h1>
         <Link href="/admin/licenses/new" className="btn btn-primary">New license</Link>
       </div>
-      <LicenseTable licenses={licenses as any[]} editHrefBase="/admin/licenses" />
+      <LicenseTable licenses={withSource} editHrefBase="/admin/licenses" showSource />
     </>
   );
 }

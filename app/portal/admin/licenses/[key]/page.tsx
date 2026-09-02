@@ -6,7 +6,23 @@ import {
 } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
 import ConfirmForm from "../../../_components/ConfirmForm";
+import AdminLicenseEditForm from "../../../_components/AdminLicenseEditForm";
 import type { FormActionState } from "../../../_components/formActionState";
+
+async function updateAction(key: string, _prevState: FormActionState, formData: FormData): Promise<FormActionState> {
+  "use server";
+  const resolved = await resolveRole();
+  if (resolved.role !== "admin") return { error: "Unauthorized" };
+  const body = Object.fromEntries(formData.entries());
+  try {
+    await updateLicense({ ...body, key }, getRedis());
+  } catch (err) {
+    if (err instanceof ActionError) return { error: err.message };
+    throw err;
+  }
+  revalidatePath(`/admin/licenses/${encodeURIComponent(key)}`);
+  return { error: null };
+}
 
 async function deactivateAction(key: string, _prevState: FormActionState): Promise<FormActionState> {
   "use server";
@@ -90,10 +106,6 @@ export default async function AdminLicenseDetailPage({ params }: { params: { key
         <dd>{license.label || "—"}</dd>
         <dt style={{ color: "var(--fg-muted)" }}>Contact</dt>
         <dd>{license.contactEmail || "—"}</dd>
-        <dt style={{ color: "var(--fg-muted)" }}>Allowed</dt>
-        <dd>{license.allowedEmail || (license.allowedDomains || []).join(", ") || "—"}</dd>
-        <dt style={{ color: "var(--fg-muted)" }}>Expires</dt>
-        <dd>{license.expiresAt ? new Date(license.expiresAt).toLocaleString() : "Never"}</dd>
         {seats && (
           <>
             <dt style={{ color: "var(--fg-muted)" }}>Seats used</dt>
@@ -101,6 +113,15 @@ export default async function AdminLicenseDetailPage({ params }: { params: { key
           </>
         )}
       </dl>
+
+      <AdminLicenseEditForm
+        action={updateAction.bind(null, key)}
+        defaultValues={{
+          label: license.label, contactEmail: license.contactEmail, expiresAt: license.expiresAt, maxUsers: license.maxUsers,
+          allowedDomains: license.allowedDomains, allowedEmail: license.allowedEmail,
+        }}
+        scope={license.scope}
+      />
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
         {license.active === false ? (

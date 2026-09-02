@@ -3,7 +3,7 @@
 import { useFormState } from "react-dom";
 import type { FormActionState } from "./formActionState";
 
-export default function ResellerLicenseEditForm({
+export default function AdminLicenseEditForm({
   action,
   defaultValues,
   scope,
@@ -18,7 +18,7 @@ export default function ResellerLicenseEditForm({
   const [state, formAction] = useFormState(action, { error: null });
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 420 }}>
+    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 420, marginBottom: 32 }}>
       {state.error && <p style={{ color: "#ef4444" }}>{state.error}</p>}
 
       <Field label="Label">

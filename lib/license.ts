@@ -146,6 +146,17 @@ export async function validateLicense(key: string, userEmail?: string): Promise<
   return { valid: true, type: record.type, scope: record.scope, expiresAt: record.expiresAt };
 }
 
+// Accepts a single domain, an array of domains, or a comma/whitespace-separated
+// string (as typed into a form field) and normalizes it into a clean domain list.
+export function parseDomains(raw: unknown): string[] {
+  const list = Array.isArray(raw) ? raw : [raw];
+  const domains = list
+    .flatMap((d) => String(d ?? "").split(/[,\s]+/))
+    .map((d) => d.toLowerCase().trim())
+    .filter(Boolean);
+  return Array.from(new Set(domains));
+}
+
 export function generateKey(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const seg = () =>

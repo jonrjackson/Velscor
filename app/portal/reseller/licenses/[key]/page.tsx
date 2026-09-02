@@ -55,7 +55,10 @@ export default async function ResellerLicenseDetailPage({ params }: { params: { 
 
       <ResellerLicenseEditForm
         action={boundAction}
-        defaultValues={{ label: license.label, contactEmail: license.contactEmail, expiresAt: license.expiresAt, maxUsers: license.maxUsers }}
+        defaultValues={{
+          label: license.label, contactEmail: license.contactEmail, expiresAt: license.expiresAt, maxUsers: license.maxUsers,
+          allowedDomains: license.allowedDomains, allowedEmail: license.allowedEmail,
+        }}
         scope={license.scope}
       />
     </>

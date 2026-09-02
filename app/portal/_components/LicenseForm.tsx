@@ -48,7 +48,7 @@ export default function LicenseForm({
 
       {scope === "org" ? (
         <Field label="Allowed domain(s), comma-separated">
-          <input name="allowedDomains" placeholder="example.com" style={inputStyle} />
+          <input name="allowedDomains" placeholder="example.com, example.org" style={inputStyle} />
         </Field>
       ) : (
         <Field label="Allowed email">

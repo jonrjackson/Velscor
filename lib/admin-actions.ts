@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import { generateKey, LicenseRecord, TIERS } from "./license";
+import { generateKey, parseDomains, LicenseRecord, TIERS } from "./license";
 import { generateResellerKey, ResellerRecord } from "./reseller";
 
 export class ActionError extends Error {
@@ -29,9 +29,7 @@ export async function createLicense(body: any, db: Redis) {
   const discountPct   = Number(body.discountPct   || 0);
   const discountNote  = String(body.discountNote  || "");
 
-  const rawDomains     = body.allowedDomains ?? body.allowedDomain ?? [];
-  const allowedDomains: string[] = (Array.isArray(rawDomains) ? rawDomains : [rawDomains])
-    .map((d: string) => String(d).toLowerCase().trim()).filter(Boolean);
+  const allowedDomains: string[] = parseDomains(body.allowedDomains ?? body.allowedDomain ?? []);
   const maxUsers: number = body.maxUsers != null ? Number(body.maxUsers) : (TIERS[tier]?.maxUsers ?? 0);
 
   if (!["trial", "paid"].includes(type)) throw new ActionError(400, "type must be 'trial' or 'paid'");
@@ -81,10 +79,11 @@ export async function updateLicense(body: any, db: Redis) {
   if (body.discountNote !== undefined) updated.discountNote = String(body.discountNote);
   if (body.active    !== undefined) updated.active    = Boolean(body.active);
   if (body.allowedDomains !== undefined) {
-    const raw = Array.isArray(body.allowedDomains) ? body.allowedDomains : [body.allowedDomains];
-    const domains = raw.map((d: string) => String(d).toLowerCase().trim()).filter(Boolean);
+    const domains = parseDomains(body.allowedDomains);
+    const previous = existing.allowedDomains || (existing.allowedDomain ? [existing.allowedDomain] : []);
     updated.allowedDomains = domains;
     delete updated.allowedDomain;
+    for (const d of previous) if (!domains.includes(d)) await db.srem(`org_domain:${d}`, key);
     for (const d of domains) await db.sadd(`org_domain:${d}`, key);
   }
   if (body.allowedEmail !== undefined) updated.allowedEmail = String(body.allowedEmail).toLowerCase().trim();

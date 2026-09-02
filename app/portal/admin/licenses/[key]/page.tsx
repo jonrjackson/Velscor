@@ -118,7 +118,7 @@ export default async function AdminLicenseDetailPage({ params }: { params: { key
         action={updateAction.bind(null, key)}
         defaultValues={{
           label: license.label, contactEmail: license.contactEmail, expiresAt: license.expiresAt, maxUsers: license.maxUsers,
-          allowedDomains: license.allowedDomains, allowedEmail: license.allowedEmail,
+          allowedDomains: license.allowedDomains, allowedEmail: license.allowedEmail, type: license.type,
         }}
         scope={license.scope}
       />

@@ -252,22 +252,31 @@ function App() {
   };
 
   const callApi = async (data: object): Promise<AnalysisResult> => {
-    const response = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        ...(autoProvisioned
-          ? { autoLicensedEmail: userEmail }
-          : { licenseKey, userEmail }),
-      }),
+    const body = JSON.stringify({
+      ...data,
+      ...(autoProvisioned
+        ? { autoLicensedEmail: userEmail }
+        : { licenseKey, userEmail }),
     });
-    if (!response.ok) {
+
+    // One silent retry on a transient (busy/overloaded) failure before
+    // surfacing anything to the user — most of these self-resolve in a couple seconds.
+    for (let attempt = 0; ; attempt++) {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      if (response.ok) return response.json();
+
       const err = await response.json().catch(() => ({}));
       if (response.status === 403) throw new Error(err.error || "License invalid or expired");
-      throw new Error("Analysis service unavailable");
+      if (response.status === 503 && err.retryable && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+      throw new Error(err.error || "Analysis service unavailable");
     }
-    return response.json();
   };
 
   const submitCorrectionReport = async () => {

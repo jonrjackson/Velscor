@@ -4,7 +4,11 @@ import { validateLicense, validateByEmail } from "../lib/license";
 import { getRelevantCorrections, formatCorrectionsForPrompt } from "../lib/corrections";
 import { getRedis } from "../lib/reseller";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 5 });
+
+export const config = {
+  maxDuration: 60,
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -107,6 +111,10 @@ Consider: sender domain legitimacy, Return-Path/From mismatch, SPF/DKIM/DMARC re
     return res.status(200).json(result);
   } catch (err: any) {
     console.error("Analyze error:", err.message);
+    const overloaded = err.status === 429 || err.status === 529 || err.status >= 500;
+    if (overloaded) {
+      return res.status(503).json({ error: "The analysis service is temporarily busy. Please try again in a moment.", retryable: true });
+    }
     return res.status(500).json({ error: "Analysis failed. Please try again." });
   }
 }

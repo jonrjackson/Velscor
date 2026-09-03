@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { billingReport } from "../../../lib/admin-actions";
+import { billingReport, getUserStats } from "../../../lib/admin-actions";
 import { getRedis } from "../../../lib/reseller";
 
 export default async function AdminDashboard() {
-  const report = await billingReport(getRedis());
+  const db = getRedis();
+  const [report, userStats] = await Promise.all([billingReport(db), getUserStats(db)]);
   const resellerLicenses = report.resellers.reduce((sum, r) => sum + r.totalLicenses, 0);
   const totalLicenses = resellerLicenses + report.direct.totalLicenses;
 
@@ -11,6 +12,7 @@ export default async function AdminDashboard() {
     <>
       <h1 style={{ fontSize: 26, marginBottom: 24 }}>Dashboard</h1>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <StatCard label="Total users" value={userStats.totalUsers} />
         <StatCard label="Total licenses" value={totalLicenses} />
         <StatCard label="Direct licenses" value={report.direct.totalLicenses} />
         <StatCard label="Resellers" value={report.resellers.length} />

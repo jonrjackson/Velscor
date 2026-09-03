@@ -184,6 +184,33 @@ export async function getSeatUsage(key: string, db: Redis) {
   return { key, maxUsers, used, unlimited: maxUsers === 0 };
 }
 
+// Distinct people currently able to use Velscor, across every active,
+// non-expired license — org-scope licenses count actual seat usage
+// (license_users:<key>, populated as real users validate), not just the
+// seat limit; user-scope licenses count as one each. Deduplicated globally
+// in case the same email shows up under more than one license.
+export async function getUserStats(db: Redis) {
+  const allLicenseKeys: string[] = await db.smembers("all_licenses");
+  const records = await Promise.all(allLicenseKeys.map(k => db.get<LicenseRecord>(`license:${k}`)));
+
+  const isActive = (r: LicenseRecord) => r.active !== false && (!r.expiresAt || new Date(r.expiresAt) > new Date());
+
+  const orgUserSets = await Promise.all(
+    allLicenseKeys.map((key, i) => {
+      const r = records[i];
+      return r && r.scope === "org" && isActive(r) ? db.smembers(`license_users:${key}`) : Promise.resolve([] as string[]);
+    })
+  );
+
+  const distinctUsers = new Set<string>();
+  orgUserSets.forEach(emails => emails.forEach(e => distinctUsers.add(e.toLowerCase().trim())));
+  records.forEach(r => {
+    if (r && r.scope === "user" && isActive(r) && r.allowedEmail) distinctUsers.add(r.allowedEmail.toLowerCase().trim());
+  });
+
+  return { totalUsers: distinctUsers.size };
+}
+
 // ── Billing / reseller actions ───────────────────────────────────────────────
 
 export async function billingReport(db: Redis) {

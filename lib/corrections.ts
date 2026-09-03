@@ -13,8 +13,14 @@ export interface Correction {
   subject?: string;
   authResults?: string;
   returnPath?: string;
+  replyTo?: string;
   bodyExcerpt?: string;
   originalVerdict: Verdict;
+  // What the analyzer itself said, captured at report time — the actual
+  // reasoning/flags, not just the verdict label, so a wrong call can be
+  // diagnosed without reverse-engineering it from the prompt.
+  originalSummary?: string;
+  originalFlags?: string[];
   correctedVerdict: Verdict;
   lesson: string;
   // Present only on user-reported (pending) corrections.
@@ -37,6 +43,14 @@ function requireVerdict(value: unknown, field: string): Verdict {
   return v as Verdict;
 }
 
+// Accepts a real array (JSON body) or a comma-separated string (form field).
+function parseList(raw: unknown): string[] | undefined {
+  if (raw === undefined) return undefined;
+  const list = Array.isArray(raw) ? raw : String(raw).split(",");
+  const items = list.map((s) => String(s).trim()).filter(Boolean);
+  return items.length ? items : undefined;
+}
+
 // Admin-authored corrections are trusted immediately — approved on creation.
 export async function addCorrection(body: any, db: Redis): Promise<Correction> {
   const originalVerdict = requireVerdict(body.originalVerdict, "originalVerdict");
@@ -53,6 +67,7 @@ export async function addCorrection(body: any, db: Redis): Promise<Correction> {
     subject: String(body.subject || "").trim() || undefined,
     authResults: String(body.authResults || "").trim() || undefined,
     returnPath: String(body.returnPath || "").trim() || undefined,
+    replyTo: String(body.replyTo || "").trim() || undefined,
     bodyExcerpt: String(body.bodyExcerpt || "").trim().slice(0, 500) || undefined,
     originalVerdict,
     correctedVerdict,
@@ -79,8 +94,11 @@ export async function reportCorrection(body: any, db: Redis): Promise<Correction
     subject: String(body.subject || "").trim() || undefined,
     authResults: String(body.authResults || "").trim() || undefined,
     returnPath: String(body.returnPath || "").trim() || undefined,
+    replyTo: String(body.replyTo || "").trim() || undefined,
     bodyExcerpt: String(body.bodyExcerpt || "").trim().slice(0, 500) || undefined,
     originalVerdict,
+    originalSummary: String(body.originalSummary || "").trim() || undefined,
+    originalFlags: parseList(body.originalFlags),
     correctedVerdict,
     lesson: "",
     reporterNote: String(body.reporterNote || "").trim().slice(0, 1000) || undefined,
@@ -118,8 +136,11 @@ export async function approveCorrection(id: string, body: any, db: Redis): Promi
     subject: body.subject !== undefined ? String(body.subject).trim() || undefined : existing.subject,
     authResults: body.authResults !== undefined ? String(body.authResults).trim() || undefined : existing.authResults,
     returnPath: body.returnPath !== undefined ? String(body.returnPath).trim() || undefined : existing.returnPath,
+    replyTo: body.replyTo !== undefined ? String(body.replyTo).trim() || undefined : existing.replyTo,
     bodyExcerpt: body.bodyExcerpt !== undefined ? String(body.bodyExcerpt).trim().slice(0, 500) || undefined : existing.bodyExcerpt,
     originalVerdict: body.originalVerdict !== undefined ? requireVerdict(body.originalVerdict, "originalVerdict") : existing.originalVerdict,
+    originalSummary: body.originalSummary !== undefined ? String(body.originalSummary).trim() || undefined : existing.originalSummary,
+    originalFlags: body.originalFlags !== undefined ? parseList(body.originalFlags) : existing.originalFlags,
     correctedVerdict: body.correctedVerdict !== undefined ? requireVerdict(body.correctedVerdict, "correctedVerdict") : existing.correctedVerdict,
     lesson: body.lesson !== undefined ? String(body.lesson).trim() : existing.lesson,
   };
@@ -143,8 +164,11 @@ export async function updateCorrection(id: string, body: any, db: Redis): Promis
     subject: body.subject !== undefined ? String(body.subject).trim() || undefined : existing.subject,
     authResults: body.authResults !== undefined ? String(body.authResults).trim() || undefined : existing.authResults,
     returnPath: body.returnPath !== undefined ? String(body.returnPath).trim() || undefined : existing.returnPath,
+    replyTo: body.replyTo !== undefined ? String(body.replyTo).trim() || undefined : existing.replyTo,
     bodyExcerpt: body.bodyExcerpt !== undefined ? String(body.bodyExcerpt).trim().slice(0, 500) || undefined : existing.bodyExcerpt,
     originalVerdict: body.originalVerdict !== undefined ? requireVerdict(body.originalVerdict, "originalVerdict") : existing.originalVerdict,
+    originalSummary: body.originalSummary !== undefined ? String(body.originalSummary).trim() || undefined : existing.originalSummary,
+    originalFlags: body.originalFlags !== undefined ? parseList(body.originalFlags) : existing.originalFlags,
     correctedVerdict: body.correctedVerdict !== undefined ? requireVerdict(body.correctedVerdict, "correctedVerdict") : existing.correctedVerdict,
     lesson,
   };
@@ -180,7 +204,9 @@ export function formatCorrectionsForPrompt(corrections: Correction[]): string {
         c.subject ? `Subject: "${c.subject}"` : null,
         c.authResults ? `Auth: ${c.authResults}` : null,
         c.returnPath ? `Return-Path: ${c.returnPath}` : null,
+        c.replyTo ? `Reply-To: ${c.replyTo}` : null,
         `Previous verdict was ${c.originalVerdict}, but the correct verdict is ${c.correctedVerdict}.`,
+        c.originalSummary ? `Originally reasoned (incorrectly): ${c.originalSummary}${c.originalFlags?.length ? ` [flags: ${c.originalFlags.join(", ")}]` : ""}` : null,
         `Lesson: ${c.lesson}`,
       ].filter(Boolean);
       return parts.join(" ");

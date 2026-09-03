@@ -21,6 +21,7 @@ interface EmailContext {
   subject?: string;
   authResults?: string;
   returnPath?: string;
+  replyTo?: string;
   body?: string;
 }
 
@@ -295,8 +296,11 @@ function App() {
           subject: lastEmailContext.subject,
           authResults: lastEmailContext.authResults,
           returnPath: lastEmailContext.returnPath,
+          replyTo: lastEmailContext.replyTo,
           bodyExcerpt: (lastEmailContext.body || "").slice(0, 500),
           originalVerdict: result.verdict,
+          originalSummary: result.summary,
+          originalFlags: result.flags,
           correctedVerdict: reportVerdict,
           reporterNote: reportNote,
         }),
@@ -369,7 +373,7 @@ function App() {
       const returnPath = rpMatch ? rpMatch[1] : rp.trim();
       const authResults = parsedHeaders["authentication-results"] || parsedHeaders["arc-authentication-results"] || "";
 
-      setLastEmailContext({ sender, senderEmail, subject, authResults, returnPath, body });
+      setLastEmailContext({ sender, senderEmail, subject, authResults, returnPath, replyTo, body });
       setResult(await callApi({ subject, body, sender, senderEmail, replyTo, returnPath, authResults }));
     } catch (err: any) {
       setError(err.message || "Analysis failed. Please try again.");
@@ -407,7 +411,7 @@ function App() {
         throw new Error("Could not parse attached email content");
       }
 
-      setLastEmailContext({ sender: parsed.sender, senderEmail: parsed.senderEmail, subject: parsed.subject, authResults: parsed.authResults, returnPath: parsed.returnPath, body: parsed.body });
+      setLastEmailContext({ sender: parsed.sender, senderEmail: parsed.senderEmail, subject: parsed.subject, authResults: parsed.authResults, returnPath: parsed.returnPath, replyTo: parsed.replyTo, body: parsed.body });
       setResult(await callApi(parsed));
     } catch (err: any) {
       setError(err.message || "Could not analyze attached email.");

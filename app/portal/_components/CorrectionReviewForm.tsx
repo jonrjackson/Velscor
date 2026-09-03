@@ -43,6 +43,9 @@ export default function CorrectionReviewForm({
       <Field label="Return-Path (optional)">
         <input name="returnPath" defaultValue={defaultValues.returnPath} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 13 }} />
       </Field>
+      <Field label="Reply-To (optional)">
+        <input name="replyTo" defaultValue={defaultValues.replyTo} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 13 }} />
+      </Field>
       <Field label="Body excerpt (optional)">
         <textarea name="bodyExcerpt" rows={3} defaultValue={defaultValues.bodyExcerpt} style={{ ...inputStyle, resize: "vertical" }} />
       </Field>
@@ -52,6 +55,12 @@ export default function CorrectionReviewForm({
           <option value="SUSPICIOUS">SUSPICIOUS</option>
           <option value="SPAM">SPAM</option>
         </select>
+      </Field>
+      <Field label="Analyzer's original reasoning (optional)">
+        <textarea name="originalSummary" rows={2} defaultValue={defaultValues.originalSummary} style={{ ...inputStyle, resize: "vertical" }} />
+      </Field>
+      <Field label="Analyzer's original flags, comma-separated (optional)">
+        <input name="originalFlags" defaultValue={(defaultValues.originalFlags || []).join(", ")} style={inputStyle} />
       </Field>
       <Field label="Correct verdict">
         <select name="correctedVerdict" required defaultValue={defaultValues.correctedVerdict} style={inputStyle}>

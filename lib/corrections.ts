@@ -12,6 +12,7 @@ export interface Correction {
   senderEmail?: string;
   subject?: string;
   authResults?: string;
+  returnPath?: string;
   bodyExcerpt?: string;
   originalVerdict: Verdict;
   correctedVerdict: Verdict;
@@ -51,6 +52,7 @@ export async function addCorrection(body: any, db: Redis): Promise<Correction> {
     senderEmail: String(body.senderEmail || "").trim() || undefined,
     subject: String(body.subject || "").trim() || undefined,
     authResults: String(body.authResults || "").trim() || undefined,
+    returnPath: String(body.returnPath || "").trim() || undefined,
     bodyExcerpt: String(body.bodyExcerpt || "").trim().slice(0, 500) || undefined,
     originalVerdict,
     correctedVerdict,
@@ -76,6 +78,7 @@ export async function reportCorrection(body: any, db: Redis): Promise<Correction
     senderEmail: String(body.senderEmail || "").trim() || undefined,
     subject: String(body.subject || "").trim() || undefined,
     authResults: String(body.authResults || "").trim() || undefined,
+    returnPath: String(body.returnPath || "").trim() || undefined,
     bodyExcerpt: String(body.bodyExcerpt || "").trim().slice(0, 500) || undefined,
     originalVerdict,
     correctedVerdict,
@@ -114,6 +117,7 @@ export async function approveCorrection(id: string, body: any, db: Redis): Promi
     senderEmail: body.senderEmail !== undefined ? String(body.senderEmail).trim() || undefined : existing.senderEmail,
     subject: body.subject !== undefined ? String(body.subject).trim() || undefined : existing.subject,
     authResults: body.authResults !== undefined ? String(body.authResults).trim() || undefined : existing.authResults,
+    returnPath: body.returnPath !== undefined ? String(body.returnPath).trim() || undefined : existing.returnPath,
     bodyExcerpt: body.bodyExcerpt !== undefined ? String(body.bodyExcerpt).trim().slice(0, 500) || undefined : existing.bodyExcerpt,
     originalVerdict: body.originalVerdict !== undefined ? requireVerdict(body.originalVerdict, "originalVerdict") : existing.originalVerdict,
     correctedVerdict: body.correctedVerdict !== undefined ? requireVerdict(body.correctedVerdict, "correctedVerdict") : existing.correctedVerdict,
@@ -138,6 +142,7 @@ export async function updateCorrection(id: string, body: any, db: Redis): Promis
     senderEmail: body.senderEmail !== undefined ? String(body.senderEmail).trim() || undefined : existing.senderEmail,
     subject: body.subject !== undefined ? String(body.subject).trim() || undefined : existing.subject,
     authResults: body.authResults !== undefined ? String(body.authResults).trim() || undefined : existing.authResults,
+    returnPath: body.returnPath !== undefined ? String(body.returnPath).trim() || undefined : existing.returnPath,
     bodyExcerpt: body.bodyExcerpt !== undefined ? String(body.bodyExcerpt).trim().slice(0, 500) || undefined : existing.bodyExcerpt,
     originalVerdict: body.originalVerdict !== undefined ? requireVerdict(body.originalVerdict, "originalVerdict") : existing.originalVerdict,
     correctedVerdict: body.correctedVerdict !== undefined ? requireVerdict(body.correctedVerdict, "correctedVerdict") : existing.correctedVerdict,
@@ -174,6 +179,7 @@ export function formatCorrectionsForPrompt(corrections: Correction[]): string {
         `${i + 1}. Sender: ${c.senderDisplay || "?"} <${c.senderEmail || "?"}>`,
         c.subject ? `Subject: "${c.subject}"` : null,
         c.authResults ? `Auth: ${c.authResults}` : null,
+        c.returnPath ? `Return-Path: ${c.returnPath}` : null,
         `Previous verdict was ${c.originalVerdict}, but the correct verdict is ${c.correctedVerdict}.`,
         `Lesson: ${c.lesson}`,
       ].filter(Boolean);

@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const {
     licenseKey, userEmail, autoLicensedEmail,
-    senderDisplay, senderEmail, subject, authResults, bodyExcerpt,
+    senderDisplay, senderEmail, subject, authResults, returnPath, bodyExcerpt,
     originalVerdict, correctedVerdict, reporterNote,
   } = req.body || {};
 
@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     record = await reportCorrection(
       {
-        senderDisplay, senderEmail, subject, authResults, bodyExcerpt,
+        senderDisplay, senderEmail, subject, authResults, returnPath, bodyExcerpt,
         originalVerdict, correctedVerdict, reporterNote,
         reporterEmail: autoLicensedEmail || userEmail || "",
       },

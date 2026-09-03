@@ -26,6 +26,9 @@ export default function CorrectionForm({
       <Field label="Authentication results (optional)">
         <textarea name="authResults" rows={2} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 13, resize: "vertical" }} />
       </Field>
+      <Field label="Return-Path (optional)">
+        <input name="returnPath" style={{ ...inputStyle, fontFamily: "monospace", fontSize: 13 }} />
+      </Field>
       <Field label="Body excerpt (optional)">
         <textarea name="bodyExcerpt" rows={3} style={{ ...inputStyle, resize: "vertical" }} />
       </Field>

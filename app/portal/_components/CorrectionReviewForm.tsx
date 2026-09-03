@@ -40,6 +40,9 @@ export default function CorrectionReviewForm({
       <Field label="Authentication results (optional)">
         <textarea name="authResults" rows={2} defaultValue={defaultValues.authResults} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 13, resize: "vertical" }} />
       </Field>
+      <Field label="Return-Path (optional)">
+        <input name="returnPath" defaultValue={defaultValues.returnPath} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 13 }} />
+      </Field>
       <Field label="Body excerpt (optional)">
         <textarea name="bodyExcerpt" rows={3} defaultValue={defaultValues.bodyExcerpt} style={{ ...inputStyle, resize: "vertical" }} />
       </Field>

@@ -33,6 +33,30 @@ function explainedGatewayDmarcNote(authResults: string | undefined, senderEmail:
   return `\n\nAUTOMATED PRE-VERIFICATION (computed in code, not inferred — treat as established fact): This email's DKIM signature cryptographically validated against ${senderDomain} (the domain in the DKIM signature matches the sender's own domain, and the signature itself checked out) — only the body hash failed afterward, meaning the message was genuinely signed by ${senderDomain} and then altered in transit by downstream infrastructure (a security gateway or the sending platform), not forged. The resulting SPF/DMARC misalignment is a mechanical side effect of that same routine infrastructure, not evidence of spoofing. Do not flag the DKIM failure, the DMARC failure, or the Return-Path/bounce domain mismatch as suspicious for this email, and do not weigh them against other signals — this determination is verified, not a judgment call.`;
 }
 
+// Same motivation as explainedGatewayDmarcNote, for the opposite and much
+// simpler case: dmarc=pass or compauth=pass reason=100 is already present,
+// which the prompt has always said should override a raw SPF/DKIM component
+// failure — but the model has repeatedly cited the component failure as an
+// "unexplained" concern anyway once other signals made the email look
+// suspicious for unrelated reasons. This is a purely mechanical fact (no
+// pattern-matching needed, unlike the case above), so state it outright
+// instead of leaving it as one rule among many for the model to re-derive.
+function authAlreadyPassedNote(authResults: string | undefined): string {
+  const auth = authResults || "";
+  const hasComponentFail = /\b(?:spf|dkim)=fail\b/i.test(auth);
+  if (!hasComponentFail) return "";
+
+  const dmarcPass = /dmarc=pass/i.test(auth);
+  const compauthPass100 = /compauth=pass\s*reason=100/i.test(auth);
+  if (!dmarcPass && !compauthPass100) return "";
+
+  const reasons: string[] = [];
+  if (dmarcPass) reasons.push("DMARC passed — the receiving mail system's own authoritative alignment determination, which already accounts for the component result above");
+  if (compauthPass100) reasons.push(`Microsoft's composite authentication check passed with its strongest reason code (compauth=pass reason=100) — combining SPF/DKIM/DMARC with sender reputation and history`);
+
+  return `\n\nAUTOMATED PRE-VERIFICATION (computed in code, not inferred — treat as established fact): ${reasons.join(", and ")}. Both are authoritative checks that already supersede an individual SPF or DKIM component failure. Do not cite that component failure as a red flag, describe it as "unexplained," or weigh it against this email's legitimacy — this determination is verified, not a judgment call.`;
+}
+
 export const config = {
   maxDuration: 60,
 };
@@ -58,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const corrections = await getRelevantCorrections(getRedis(), { sender, senderEmail, subject, authResults, body });
   const correctionsBlock = formatCorrectionsForPrompt(corrections);
-  const gatewayNote = explainedGatewayDmarcNote(authResults, senderEmail);
+  const gatewayNote = explainedGatewayDmarcNote(authResults, senderEmail) || authAlreadyPassedNote(authResults);
 
   const prompt = `You are an email security analyst. Analyze the following email for spam, phishing, or scam indicators. Your goal is accurate verdicts — avoid both false positives on legitimate business email and false negatives on real threats.
 
@@ -99,6 +123,7 @@ Important context to apply:
 - Business acquisitions and account transfers (e.g. "transferred from Company X") are normal and not indicators of spoofing.
 - Short, low-content emails (a one-line reply, a "test" email, a quick internal note) are extremely common in normal business use and are NOT suspicious on their own — do not flag brevity or a generic subject like "test" unless the email also asks for credentials, money, or contains links/QR codes/attachments.
 - A sender's signature or contact block mentioning a second company/brand domain (rebrands, sister companies, consultants working under multiple entities) is common and weak on its own — only treat it as meaningful if it's paired with an actual authentication failure or Return-Path/From mismatch.
+- Automated security/identity-alert emails (Microsoft Entra/Azure AD Identity Protection, Okta, Duo, Google Workspace alerts, etc.) routinely reference the RECIPIENT organization's own name, domain, or "directory"/"tenant" by name — e.g. "users at risk in the [Company Name] directory" — because the alert is personalized to that specific customer. An Azure AD/Entra "directory" or "tenant" IS the customer's own organization, not a separate third party, so this is expected personalization, not evidence of a mismatch or spoofing. This does not excuse a genuinely unauthenticated sender, though — still weigh the sender's own authentication status and the link's actual destination domain, and treat this as one contextual factor, not an automatic pass (a sender's own name/domain appearing in a message is also a known social-engineering technique when authentication doesn't otherwise check out).
 - Weigh ALL available signals together. Multiple WEAK signals (see below) should not be added up into a SUSPICIOUS verdict — SUSPICIOUS requires at least one STRONG signal, or a genuinely coherent pattern (e.g. urgency + credential request + link).
 
 Spoofing and authentication signals — distinguish STRONG (actual failure) from WEAK (no data) from EXPLAINED (looks like a failure but isn't):

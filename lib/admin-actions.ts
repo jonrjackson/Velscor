@@ -16,6 +16,16 @@ function licenseStatus(r: LicenseRecord): string {
   return "active";
 }
 
+// Reseller-owned paid licenses run on a 30-day billing cycle plus a 5-day
+// grace period (see lib/reseller-actions.ts) — the invoice.paid webhook pushes
+// the expiry forward on each successful payment.
+const resellerPaidExpiry = () => new Date(Date.now() + 35 * 86_400_000).toISOString();
+
+async function requireReseller(resellerId: string, db: Redis) {
+  const reseller = await db.get<ResellerRecord>(`reseller:${resellerId}`);
+  if (!reseller) throw new ActionError(404, "Reseller not found");
+}
+
 // ── License actions ──────────────────────────────────────────────────────────
 
 export async function createLicense(body: any, db: Redis) {
@@ -28,6 +38,7 @@ export async function createLicense(body: any, db: Redis) {
   const contactEmail  = String(body.contactEmail  || "");
   const discountPct   = Number(body.discountPct   || 0);
   const discountNote  = String(body.discountNote  || "");
+  const resellerId    = String(body.resellerId    || "").trim();
 
   const allowedDomains: string[] = parseDomains(body.allowedDomains ?? body.allowedDomain ?? []);
   const maxUsers: number = body.maxUsers != null ? Number(body.maxUsers) : (TIERS[tier]?.maxUsers ?? 0);
@@ -36,14 +47,18 @@ export async function createLicense(body: any, db: Redis) {
   if (!["user", "org"].includes(scope))  throw new ActionError(400, "scope must be 'user' or 'org'");
   if (scope === "user" && !allowedEmail)         throw new ActionError(400, "allowedEmail required for user scope");
   if (scope === "org"  && !allowedDomains.length) throw new ActionError(400, "allowedDomain(s) required for org scope");
+  if (resellerId) await requireReseller(resellerId, db);
 
   const key = generateKey();
   const now = new Date();
   const record: LicenseRecord = {
     type, scope,
     createdAt: now.toISOString(),
-    expiresAt: type === "trial" ? new Date(now.getTime() + trialDays * 86_400_000).toISOString() : null,
+    expiresAt: type === "trial" ? new Date(now.getTime() + trialDays * 86_400_000).toISOString()
+             : resellerId       ? resellerPaidExpiry()
+             : null,
   };
+  if (resellerId) record.resellerId = resellerId;
   if (scope === "user") { record.allowedEmail   = allowedEmail.toLowerCase().trim(); }
   if (scope === "org")  { record.allowedDomains = allowedDomains; record.maxUsers = maxUsers; }
   if (tier)         record.tier         = tier;
@@ -56,6 +71,7 @@ export async function createLicense(body: any, db: Redis) {
 
   await db.set(`license:${key}`, record);
   await db.sadd("all_licenses", key);
+  if (resellerId) await db.sadd(`reseller_licenses:${resellerId}`, key);
   if (scope === "org")  for (const d of allowedDomains) await db.sadd(`org_domain:${d}`, key);
   if (scope === "user" && record.allowedEmail) await db.set(`email_license:${record.allowedEmail}`, key);
 
@@ -69,12 +85,26 @@ export async function updateLicense(body: any, db: Redis) {
   const existing = await db.get<LicenseRecord>(`license:${key}`);
   if (!existing) throw new ActionError(404, "License not found");
 
+  // Reseller (re)assignment — "" moves the license back to direct.
+  const prevReseller = existing.resellerId || "";
+  const nextReseller = body.resellerId !== undefined ? String(body.resellerId || "").trim() : prevReseller;
+  const resellerChanged = nextReseller !== prevReseller;
+  if (resellerChanged && nextReseller) {
+    await requireReseller(nextReseller, db);
+    // A self-serve subscription already bills the customer directly; putting
+    // it under a reseller would bill the same seats twice.
+    if (existing.stripeSubscriptionId) {
+      throw new ActionError(400, "This license is billed through its own Stripe subscription — cancel that before assigning it to a reseller");
+    }
+  }
+
   const updated: LicenseRecord = { ...existing };
   if (body.tier      !== undefined) { updated.tier = String(body.tier); if (body.maxUsers === undefined && TIERS[updated.tier]) updated.maxUsers = TIERS[updated.tier].maxUsers; }
   if (body.maxUsers  !== undefined) updated.maxUsers  = Number(body.maxUsers);
   if (body.type      !== undefined) updated.type      = body.type as LicenseRecord["type"];
   if (body.expiresAt !== undefined) updated.expiresAt = body.expiresAt || null;
   if (body.label     !== undefined) updated.label     = String(body.label);
+  if (body.contactEmail !== undefined) updated.contactEmail = String(body.contactEmail);
   if (body.discountPct  !== undefined) updated.discountPct  = Number(body.discountPct);
   if (body.discountNote !== undefined) updated.discountNote = String(body.discountNote);
   if (body.active    !== undefined) updated.active    = Boolean(body.active);
@@ -88,7 +118,22 @@ export async function updateLicense(body: any, db: Redis) {
   }
   if (body.allowedEmail !== undefined) updated.allowedEmail = String(body.allowedEmail).toLowerCase().trim();
 
+  if (resellerChanged) {
+    if (nextReseller) {
+      updated.resellerId = nextReseller;
+      // A paid license with no expiry would be billed to the reseller but
+      // never lapse on non-payment — start it on the reseller billing cycle.
+      if (updated.type === "paid" && !updated.expiresAt) updated.expiresAt = resellerPaidExpiry();
+    } else {
+      delete updated.resellerId;
+    }
+  }
+
   await db.set(`license:${key}`, updated);
+  if (resellerChanged) {
+    if (prevReseller) await db.srem(`reseller_licenses:${prevReseller}`, key);
+    if (nextReseller) await db.sadd(`reseller_licenses:${nextReseller}`, key);
+  }
   return { key, ...updated };
 }
 

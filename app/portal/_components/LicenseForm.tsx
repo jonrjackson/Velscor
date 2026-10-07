@@ -13,10 +13,12 @@ export default function LicenseForm({
   action,
   tiers,
   submitLabel,
+  resellers,
 }: {
   action: (prevState: FormActionState, formData: FormData) => Promise<FormActionState>;
   tiers: Record<string, Tier>;
   submitLabel: string;
+  resellers?: { resellerKey: string; name: string; active?: boolean }[]; // admin only — lets the license be created under a reseller
 }) {
   const [scope, setScope] = useState<"org" | "user">("org");
   const [type, setType] = useState<"trial" | "paid">("trial");
@@ -25,6 +27,19 @@ export default function LicenseForm({
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 480 }}>
       {state.error && <p style={{ color: "#ef4444" }}>{state.error}</p>}
+
+      {resellers && (
+        <Field label="Reseller">
+          <select name="resellerId" defaultValue="" style={inputStyle}>
+            <option value="">Direct (no reseller)</option>
+            {resellers.map((r) => (
+              <option key={r.resellerKey} value={r.resellerKey}>
+                {r.name}{r.active === false ? " (inactive)" : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <Field label="Type">
         <select name="type" value={type} onChange={(e) => setType(e.target.value as any)} style={inputStyle}>

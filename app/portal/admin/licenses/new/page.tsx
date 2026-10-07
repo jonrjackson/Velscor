@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { resolveRole } from "../../../../../lib/auth";
-import { createLicense, ActionError } from "../../../../../lib/admin-actions";
+import { createLicense, listResellers, ActionError } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
 import { TIERS } from "../../../../../lib/license";
 import LicenseForm from "../../../_components/LicenseForm";
@@ -23,11 +23,14 @@ async function createLicenseAction(_prevState: FormActionState, formData: FormDa
   redirect(`/admin/licenses/${encodeURIComponent(key)}`);
 }
 
-export default function NewLicensePage() {
+export default async function NewLicensePage() {
+  const { resellers } = await listResellers(getRedis());
+  const resellerOptions = resellers.map((r) => ({ resellerKey: r.resellerKey, name: r.name, active: r.active }));
+
   return (
     <>
       <h1 style={{ fontSize: 26, marginBottom: 24 }}>New license</h1>
-      <LicenseForm action={createLicenseAction} tiers={TIERS} submitLabel="Create license" />
+      <LicenseForm action={createLicenseAction} tiers={TIERS} submitLabel="Create license" resellers={resellerOptions} />
     </>
   );
 }

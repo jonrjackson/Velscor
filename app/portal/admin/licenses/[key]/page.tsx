@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { resolveRole } from "../../../../../lib/auth";
 import {
-  lookupLicense, updateLicense, deactivateLicense, deleteLicense, rotateKey, getSeatUsage, ActionError,
+  lookupLicense, updateLicense, deactivateLicense, deleteLicense, rotateKey, getSeatUsage, listResellers, ActionError,
 } from "../../../../../lib/admin-actions";
 import { getRedis } from "../../../../../lib/reseller";
 import ConfirmForm from "../../../_components/ConfirmForm";
@@ -91,6 +91,9 @@ export default async function AdminLicenseDetailPage({ params }: { params: { key
   if (!license) notFound();
 
   const seats = license.scope === "org" ? await getSeatUsage(key, db) : null;
+  const { resellers } = await listResellers(db);
+  const resellerOptions = resellers.map((r) => ({ resellerKey: r.resellerKey, name: r.name, active: r.active }));
+  const resellerName = resellers.find((r) => r.resellerKey === license.resellerId)?.name;
 
   return (
     <>
@@ -106,6 +109,8 @@ export default async function AdminLicenseDetailPage({ params }: { params: { key
         <dd>{license.label || "—"}</dd>
         <dt style={{ color: "var(--fg-muted)" }}>Contact</dt>
         <dd>{license.contactEmail || "—"}</dd>
+        <dt style={{ color: "var(--fg-muted)" }}>Source</dt>
+        <dd>{license.resellerId ? `Reseller: ${resellerName || license.resellerId}` : "Direct"}</dd>
         {seats && (
           <>
             <dt style={{ color: "var(--fg-muted)" }}>Seats used</dt>
@@ -114,13 +119,17 @@ export default async function AdminLicenseDetailPage({ params }: { params: { key
         )}
       </dl>
 
+      {/* Keyed so the form remounts when a reseller assignment changes the expiry server-side */}
       <AdminLicenseEditForm
+        key={`${license.resellerId || ""}|${license.expiresAt || ""}`}
         action={updateAction.bind(null, key)}
         defaultValues={{
           label: license.label, contactEmail: license.contactEmail, expiresAt: license.expiresAt, maxUsers: license.maxUsers,
           allowedDomains: license.allowedDomains, allowedEmail: license.allowedEmail, type: license.type,
+          resellerId: license.resellerId,
         }}
         scope={license.scope}
+        resellers={resellerOptions}
       />
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>

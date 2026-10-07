@@ -12,13 +12,15 @@ export default function AdminLicenseEditForm({
   action,
   defaultValues,
   scope,
+  resellers,
 }: {
   action: (prevState: FormActionState, formData: FormData) => Promise<FormActionState>;
   defaultValues: {
     label?: string; contactEmail?: string; expiresAt: string | null; maxUsers?: number;
-    allowedDomains?: string[]; allowedEmail?: string; type?: string;
+    allowedDomains?: string[]; allowedEmail?: string; type?: string; resellerId?: string;
   };
   scope: string;
+  resellers: { resellerKey: string; name: string; active?: boolean }[];
 }) {
   const [state, formAction] = useFormState(action, { error: null });
   const [type, setType] = useState(defaultValues.type || "trial");
@@ -27,6 +29,17 @@ export default function AdminLicenseEditForm({
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 420, marginBottom: 32 }}>
       {state.error && <p style={{ color: "#ef4444" }}>{state.error}</p>}
+
+      <Field label="Reseller">
+        <select name="resellerId" defaultValue={defaultValues.resellerId || ""} style={inputStyle}>
+          <option value="">Direct (no reseller)</option>
+          {resellers.map((r) => (
+            <option key={r.resellerKey} value={r.resellerKey}>
+              {r.name}{r.active === false ? " (inactive)" : ""}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       <Field label="Type">
         <select

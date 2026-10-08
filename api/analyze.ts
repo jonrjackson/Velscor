@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { validateLicense, validateByEmail } from "../lib/license";
 import { getRelevantCorrections, formatCorrectionsForPrompt } from "../lib/corrections";
 import { getRedis } from "../lib/reseller";
+import { enforceLimits, clientIp } from "../lib/rate-limit";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 5 });
 
@@ -67,6 +68,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { subject, body, sender, senderEmail, replyTo, returnPath, authResults, licenseKey, userEmail, autoLicensedEmail } = req.body || {};
+
+  // The add-in re-analyzes on every email the user selects, so the per-user
+  // limit allows heavy inbox triage; the per-IP limit covers a shared office IP.
+  const identity = String(autoLicensedEmail || userEmail || licenseKey || "");
+  const allowed = await enforceLimits(req, res, getRedis(), [
+    { bucket: "analyze:user", id: identity,      limit: 300,  windowSec: 3600 },
+    { bucket: "analyze:ip",   id: clientIp(req), limit: 3000, windowSec: 3600 },
+  ]);
+  if (!allowed) return;
 
   const license = autoLicensedEmail
     ? await validateByEmail(String(autoLicensedEmail))

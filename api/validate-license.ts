@@ -1,8 +1,15 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { validateLicense } from "../lib/license";
+import { getRedis } from "../lib/reseller";
+import { enforceLimits, clientIp } from "../lib/rate-limit";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).end();
+
+  const allowed = await enforceLimits(req, res, getRedis(), [
+    { bucket: "validate:ip", id: clientIp(req), limit: 300, windowSec: 3600 },
+  ]);
+  if (!allowed) return;
 
   const { key } = req.body || {};
   try {

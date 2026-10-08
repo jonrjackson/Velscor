@@ -205,6 +205,11 @@ function App() {
         body: JSON.stringify({ userEmail }),
       });
       const data = await res.json();
+      if (res.status === 429) {
+        setLicenseError(data.error || "Too many requests. Please try again shortly.");
+        setLicenseStatus("unlicensed");
+        return;
+      }
       if (data.valid) {
         localStorage.setItem(AUTO_STORAGE_KEY, JSON.stringify({ email: userEmail, checkedAt: Date.now() }));
         setAutoProvisioned(true);
@@ -227,6 +232,12 @@ function App() {
         body: JSON.stringify({ key }),
       });
       const data = await res.json();
+      // Rate limited — say so, but keep the saved key; it isn't invalid.
+      if (res.status === 429) {
+        setLicenseStatus("unlicensed");
+        setLicenseError(data.error || "Too many requests. Please try again shortly.");
+        return;
+      }
       if (data.valid) {
         if (save) localStorage.setItem(STORAGE_KEY, key);
         setLicenseKey(key);

@@ -3,6 +3,7 @@ import { validateLicense, validateByEmail } from "../lib/license";
 import { reportCorrection } from "../lib/corrections";
 import { getRedis } from "../lib/reseller";
 import { getResend } from "../lib/resend";
+import { enforceLimits, clientIp } from "../lib/rate-limit";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -14,6 +15,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     senderDisplay, senderEmail, subject, authResults, returnPath, replyTo, bodyExcerpt,
     originalVerdict, originalSummary, originalFlags, correctedVerdict, reporterNote,
   } = req.body || {};
+
+  const allowed = await enforceLimits(req, res, getRedis(), [
+    { bucket: "correction:user", id: String(autoLicensedEmail || userEmail || licenseKey || ""), limit: 30,  windowSec: 3600 },
+    { bucket: "correction:ip",   id: clientIp(req),                                             limit: 200, windowSec: 3600 },
+  ]);
+  if (!allowed) return;
 
   const license = autoLicensedEmail
     ? await validateByEmail(String(autoLicensedEmail))

@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import { Redis } from "@upstash/redis";
 
 // ── Tier definitions ─────────────────────────────────────────────────────────
@@ -156,6 +157,6 @@ export function parseDomains(raw: unknown): string[] {
 export function generateKey(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const seg = () =>
-    Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join("");
   return `VS-${seg()}-${seg()}-${seg()}-${seg()}`;
 }

@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import { Redis } from "@upstash/redis";
 
 export interface ResellerRecord {
@@ -41,6 +42,6 @@ export async function validateResellerKey(key: string): Promise<ResellerValidati
 export function generateResellerKey(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const seg = () =>
-    Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join("");
   return `VSR-${seg()}-${seg()}-${seg()}`;
 }

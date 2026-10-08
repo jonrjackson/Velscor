@@ -71,17 +71,15 @@ export async function validateByEmail(userEmail: string): Promise<LicenseValidat
     if (record.active === false) continue;
     if (record.expiresAt && new Date(record.expiresAt) < new Date()) continue;
 
-    // Enforce seat limit
+    // Record the user (feeds seat usage and the admin user count), enforcing
+    // the seat limit only when there is one.
     const maxUsers = record.maxUsers ?? 0;
-    if (maxUsers > 0) {
-      const usersKey = `license_users:${key}`;
-      const email    = userEmail.toLowerCase().trim();
-      const seen     = await redis.sismember(usersKey, email);
-      if (!seen) {
-        const count = await redis.scard(usersKey);
-        if (count >= maxUsers) continue; // seat limit hit — try next key
-        await redis.sadd(usersKey, email);
-      }
+    const usersKey = `license_users:${key}`;
+    const email    = userEmail.toLowerCase().trim();
+    const seen     = await redis.sismember(usersKey, email);
+    if (!seen) {
+      if (maxUsers > 0 && (await redis.scard(usersKey)) >= maxUsers) continue; // seat limit hit — try next key
+      await redis.sadd(usersKey, email);
     }
 
     return { valid: true, type: record.type, scope: record.scope, expiresAt: record.expiresAt };
@@ -127,18 +125,16 @@ export async function validateLicense(key: string, userEmail?: string): Promise<
         return { valid: false, reason: "This license key is registered to a different organization" };
       }
 
-      // Enforce user seat limit (maxUsers > 0 means limited)
+      // Record the user (feeds seat usage and the admin user count), enforcing
+      // the seat limit only when there is one (maxUsers > 0 means limited).
       const maxUsers = record.maxUsers ?? 0;
-      if (maxUsers > 0) {
-        const usersKey = `license_users:${key}`;
-        const alreadySeen = await redis.sismember(usersKey, email);
-        if (!alreadySeen) {
-          const currentCount = await redis.scard(usersKey);
-          if (currentCount >= maxUsers) {
-            return { valid: false, reason: `User seat limit (${maxUsers}) reached for this license` };
-          }
-          await redis.sadd(usersKey, email);
+      const usersKey = `license_users:${key}`;
+      const alreadySeen = await redis.sismember(usersKey, email);
+      if (!alreadySeen) {
+        if (maxUsers > 0 && (await redis.scard(usersKey)) >= maxUsers) {
+          return { valid: false, reason: `User seat limit (${maxUsers}) reached for this license` };
         }
+        await redis.sadd(usersKey, email);
       }
     }
   }
